@@ -1,3 +1,3 @@
 layout: page
 title: "aaaaaaaaaaaaa"
-permalink: /ccc
+permalink: /about/contact/
