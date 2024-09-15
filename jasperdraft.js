@@ -1,3 +1,3 @@
-const abcd = () => {
+function abcd () {
     this.innerHTML = 'Ooops!'
 }
