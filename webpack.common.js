@@ -6,7 +6,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 
 module.exports = {
   entry: {
-    game: './src/client/index.js',
+    game: './index.js',
   },
   output: {
     filename: '[name].[contenthash].js',
@@ -24,24 +24,24 @@ module.exports = {
           },
         },
       },
-      {
-        test: /\.css$/,
-        use: [
-          {
-            loader: MiniCssExtractPlugin.loader,
-          },
-          'css-loader',
-        ],
-      },
+      // {
+      //   test: /\.css$/,
+      //   use: [
+      //     {
+      //       loader: MiniCssExtractPlugin.loader,
+      //     },
+      //     'css-loader',
+      //   ],
+      // },
     ],
   },
   plugins: [
-    new MiniCssExtractPlugin({
-      filename: '[name].[contenthash].css',
-    }),
+    // new MiniCssExtractPlugin({
+    //   filename: '[name].[contenthash].css',
+    // }),
     new HtmlWebpackPlugin({
       filename: 'index.html',
-      template: 'src/client/html/index.html',
+      template: './index.html',
     }),
   ],
 };
