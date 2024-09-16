@@ -3,7 +3,7 @@
   "version": "0.8.1.1",
   "description": "Academic Pages Mistakes Jekyll theme npm build scripts",
   "repository": {
-    "type": "git",
+    "type": "module",
     "url": "https://github.com/academicpages/academicpages.github.io"
   },
   "keywords": [
