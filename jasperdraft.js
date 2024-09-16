@@ -1,3 +1,9 @@
+function abcd(){
+    console.log('ssssssssss')
+    document.getElementById("demo").innerHTML = 'Ooops!'
+    document.getElementById('shuqi').style.display = "block";
+}
+
 import io from 'socket.io-client';
 
 // const Constants = require('../shared/constants');
@@ -28,8 +34,3 @@ export const updateDirection = dir => {
 //   socket.emit(Constants.MSG_TYPES.INPUT, dir);
 };
 
-function abcd(){
-    console.log('ssssssssss')
-    document.getElementById("demo").innerHTML = 'Ooops!'
-    document.getElementById('shuqi').style.display = "block";
-}
