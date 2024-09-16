@@ -1,43 +1,43 @@
 {
-  "name": "academic-pages",
-  "version": "0.8.1.1",
-  "description": "Academic Pages Mistakes Jekyll theme npm build scripts",
-  "repository": {
-    "type": "module",
-    "url": "https://github.com/academicpages/academicpages.github.io"
+  "name": "io-game-from-scratch",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server/server.js",
+  "scripts": {
+    "build": "webpack --config webpack.prod.js",
+    "lint": "eslint --cache --ext .js,.jsx src/",
+    "develop": "cross-env NODE_ENV=development node src/server/server.js",
+    "start": "cross-env NODE_ENV=production node src/server/server.js",
+    "test": "jest"
   },
-  "keywords": [
-    "jekyll",
-    "theme",
-    "minimal"
-  ],
-  "contributors": [
-    "Michael Rose",
-    "Robert Zupko"
-  ],
+  "author": "Victor Zhou",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/academicpages/academicpages.github.io/issues"
-  },
-  "homepage": "https://github.com/academicpages/academicpages.github.io",
-  "engines": {
-    "node": ">= 0.10.0"
-  },
   "dependencies": {
-    "fitvids": "^2.1.1",
-    "jquery": "^3.7.1",
-    "jquery-smooth-scroll": "^2.2.0",
-    "magnific-popup": "^1.2.0",
-    "socket.io": "^4.7.5",
-    "socket.io-client": "^4.7.5"
+    "express": "^4.17.3",
+    "html-webpack-plugin": "^3.2.0",
+    "lodash": "^4.17.21",
+    "shortid": "^2.2.16",
+    "socket.io": "^4.4.1",
+    "socket.io-client": "^4.4.1",
+    "throttle-debounce": "^2.3.0",
+    "webpack": "^4.43.0",
+    "webpack-dev-middleware": "^3.7.3"
   },
   "devDependencies": {
-    "onchange": "^7.1.0",
-    "uglify-js": "^3.17.4"
-  },
-  "scripts": {
-    "uglify": "uglifyjs node_modules/jquery/dist/jquery.min.js node_modules/fitvids/dist/fitvids.min.js node_modules/magnific-popup/dist/jquery.magnific-popup.min.js node_modules/jquery-smooth-scroll/jquery.smooth-scroll.min.js assets/js/plugins/jquery.greedy-navigation.js assets/js/_main.js -c -m -o assets/js/main.min.js",
-    "watch:js": "onchange \"assets/js/**/*.js\" -e \"assets/js/main.min.js\" -- npm run build:js",
-    "build:js": "npm run uglify"
+    "@babel/core": "^7.10.2",
+    "@babel/preset-env": "^7.10.2",
+    "babel-eslint": "^10.1.0",
+    "babel-loader": "^8.1.0",
+    "cross-env": "^5.2.1",
+    "css-loader": "^2.1.1",
+    "eslint": "^5.16.0",
+    "eslint-config-airbnb-base": "^13.2.0",
+    "eslint-plugin-import": "^2.20.2",
+    "eslint-plugin-jest": "^23.7.0",
+    "jest": "^25.1.0",
+    "mini-css-extract-plugin": "^0.6.0",
+    "optimize-css-assets-webpack-plugin": "^5.0.8",
+    "webpack-cli": "^3.3.11",
+    "webpack-merge": "^4.2.2"
   }
 }
