@@ -24,7 +24,6 @@ Promise.all([
   playMenu.classList.remove('hidden');
   usernameInput.focus();
   playButton.onclick = () => {
-    console.log(111)
     // Play!
     play(usernameInput.value);
     playMenu.classList.add('hidden');
