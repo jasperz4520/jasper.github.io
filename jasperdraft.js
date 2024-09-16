@@ -12,16 +12,19 @@ const connectedPromise = new Promise(resolve => {
 
 export const connect = onGameOver => (
   connectedPromise.then(() => {
+    console.log('Connected to server!');
     // socket.on(Constants.MSG_TYPES.GAME_UPDATE, processGameUpdate);
     // socket.on(Constants.MSG_TYPES.GAME_OVER, onGameOver);
   })
 );
 
 export const play = username => {
+    console.log('Connected to server!');
 //   socket.emit(Constants.MSG_TYPES.JOIN_GAME, username);
 };
 
 export const updateDirection = dir => {
+    console.log('Connected to server!');
 //   socket.emit(Constants.MSG_TYPES.INPUT, dir);
 };
 
