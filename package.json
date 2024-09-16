@@ -29,7 +29,7 @@
     "jquery-smooth-scroll": "^2.2.0",
     "magnific-popup": "^1.2.0",
     "socket.io": "^4.7.5",
-    "socket.io-client": "^4.4.1"
+    "socket.io-client": "^4.7.5"
   },
   "devDependencies": {
     "onchange": "^7.1.0",

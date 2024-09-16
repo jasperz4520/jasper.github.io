@@ -1,8 +1,3 @@
-function abcd(){
-    console.log('ssssssssss')
-    document.getElementById("demo").innerHTML = 'Ooops!'
-    document.getElementById('shuqi').style.display = "block";
-}
 
 import io from 'socket.io-client';
 
@@ -33,4 +28,11 @@ export const updateDirection = dir => {
     console.log('Connected to server!');
 //   socket.emit(Constants.MSG_TYPES.INPUT, dir);
 };
+
+function abcd(){
+  console.log('ssssssssss')
+  document.getElementById("demo").innerHTML = 'Ooops!'
+  document.getElementById('shuqi').style.display = "block";
+}
+
 
