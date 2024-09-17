@@ -21,7 +21,7 @@
 
       queryButton.addEventListener('click', (e) => {
         e.preventDefault()
-        socket.emit('queryButtonClicked')
+        socket.emit('queryButtonClicked', 123)
       })
 
       socket.on('message', function (msg) {

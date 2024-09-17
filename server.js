@@ -22,7 +22,7 @@ io.on('connection', (socket) => {
   }) 
 
   socket.on('queryButtonClicked', (msg) => { 
-    io.emit('queryButtonClickedResponse', num) 
+    io.emit('queryButtonClickedResponse', msg) 
   }) 
 }) 
 
