@@ -1,8 +1,8 @@
 // Learn more about this file at:
 // https://victorzhou.com/blog/build-an-io-game-part-1/#5-client-rendering
 import { debounce } from 'throttle-debounce';
-import { getAsset } from './assets';
-import { getCurrentState } from './state';
+import { getAsset } from './assets.js';
+import { getCurrentState } from './state.js';
 
 const Constants = require('../shared/constants');
 

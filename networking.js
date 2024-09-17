@@ -2,7 +2,7 @@
 // https://victorzhou.com/blog/build-an-io-game-part-1/#4-client-networking
 import io from 'socket.io-client';
 import { throttle } from 'throttle-debounce';
-import { processGameUpdate } from './state';
+import { processGameUpdate } from './state.js';
 
 const Constants = require('../shared/constants');
 
