@@ -16,6 +16,7 @@ import { setLeaderboardHidden } from './leaderboard.js';
 const playMenu = document.getElementById('play-menu');
 const playButton = document.getElementById('play-button');
 const usernameInput = document.getElementById('username-input');
+console.log(111)
 
 Promise.all([
   connect(onGameOver),
