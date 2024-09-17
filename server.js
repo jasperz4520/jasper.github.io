@@ -10,13 +10,19 @@ app.get('/', function (req, res) {
 })
 
 io.on('connection', (socket) => { 
+    let num = 1;
   console.log('Client connected') 
   socket.on('disconnect', () => { 
     console.log('Client disconnected') 
   }) 
 
   socket.on('message', (msg) => { 
-    io.emit('message', msg) 
+    num = msg
+    io.emit('message', `现在是${num}`) 
+  }) 
+
+  socket.on('queryButtonClicked', (msg) => { 
+    io.emit('queryButtonClickedResponse', num) 
   }) 
 }) 
 
