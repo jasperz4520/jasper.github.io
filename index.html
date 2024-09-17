@@ -1,64 +1,28 @@
 <!DOCTYPE html>
 <html>
-<head>
-  <title>An example .io game</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-  <link rel="shortcut icon" href="/assets/icon64.png">
-  <meta property="description" content="A complete example multiplayer .io web game implemented from scratch. Built with Javascript and Node.js. Open source on Github.">
-  <meta property="og:title" content="An example .io game">
-  <meta property="og:description" content="A complete example multiplayer .io web game implemented from scratch. Built with Javascript and Node.js. Open source on Github.">
-  <meta property="og:image" content="/assets/icon1200.png">
-  <!-- <script async src="https://www.googletagmanager.com/gtag/js?id=UA-58664433-3"></script> -->
-  <script>
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      body { margin: 0; padding-bottom: 3rem; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
 
-    gtag('config', 'UA-58664433-3');
-  </script>
-  <script src="index.js" type="module"></script>
-</head>
-<body>
-  <canvas id="game-canvas"></canvas>
-  <div id="play-menu" class="hidden">
-    <h1>An example .io game</h1>
-    <p>
-      Stay alive and shoot other players.aaaaaaaaaaaaaaaaaaaaa
-      <br />
-      Use your mouse to move.
-    </p>
-    <hr />
-    <p>
-      <!-- <br /> -->
-      Read the tutorial: <a href="https://victorzhou.com/blog/build-an-io-game-part-1/" target="_blank">How to Build an .io Game</a>.
-      <br />
-      See the source code on <a href="https://github.com/vzhou842/example-.io-game" target="_blank">Github</a>.
-      <br />
-      Created by <a href="https://victorzhou.com">Victor Zhou</a>.
-    </p>
-    <hr />
-    <input type="text" id="username-input" placeholder="Username" />
-    <button id="play-button">PLAY</button>
-  </div>
-  <div id="leaderboard" class="hidden">
-    <table>
-      <tr>
-        <th>Username</th>
-        <th>Score</th>
-      </tr>
-      <tr><td></td><td></td></tr>
-      <tr><td></td><td></td></tr>
-      <tr><td></td><td></td></tr>
-      <tr><td></td><td></td></tr>
-      <tr><td></td><td></td></tr>
-    </table>
-  </div>
-  <div id="disconnect-modal" class="hidden">
-    <div>
-      <h2>Disconnected from Server </h2>
-      <hr />
-      <button id="reconnect-button">RECONNECT</button>
-    </div>
-  </div>
-</body>
+      #form { background: rgba(0, 0, 0, 0.15); padding: 0.25rem; position: fixed; bottom: 0; left: 0; right: 0; display: flex; height: 3rem; box-sizing: border-box; backdrop-filter: blur(10px); }
+      #input { border: none; padding: 0 1rem; flex-grow: 1; border-radius: 2rem; margin: 0.25rem; }
+      #input:focus { outline: none; }
+      #form > button { background: #333; border: none; padding: 0 1rem; margin: 0.25rem; border-radius: 3px; outline: none; color: #fff; }
+
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages > li { padding: 0.5rem 1rem; }
+      #messages > li:nth-child(odd) { background: #efefef; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+      <input id="input" autocomplete="off" /><button>Send</button>
+    </form>
+    <!-- <script src="/socket.io/socket.io.js"></script>
+    <script>
+      var socket = io();
+    </script> -->
+  </body>
 </html>
