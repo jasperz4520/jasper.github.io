@@ -69,8 +69,10 @@
         printNewLine(msg)
       })
 
-      socket.on('ToCYourNameChanged', function (name) {
-        myName.innerHTML = `My Name is ${name}`
+      socket.on('ToCSomeonesNameChanged', function (data) {
+        if(data.myId == myId){
+          myName.innerHTML = `My Name is ${data.newName}`
+        }
       })
 
       socket.on('notifyCCurrentUserNames', function (msg) {

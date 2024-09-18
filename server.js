@@ -23,7 +23,7 @@ io.on('connection', (socket) => {
   socket.on('ToSChangeName', (data) => { 
     const {newName, myId} = data;
     currentUserNames[myId] = newName
-    io.emit('ToCYourNameChanged', `${newName}`) 
+    io.emit('ToCSomeonesNameChanged', data) 
     notifyCCurrentUserNames()
   }) 
 
@@ -31,9 +31,9 @@ io.on('connection', (socket) => {
     io.emit('ToCQueryButtonClickedResponse', msg) 
   }) 
 
-  socket.on('disconnect', (aa) => {
+  socket.on('disconnect', (aa, bb) => {
     io.emit('notifyCCurrentUserCount', `${--num}`)
-    console.log('Client disconnected') 
+    console.log(`${aa} ----------  ${bb}`) 
   });
 
   function notifyCCurrentUserNames () {
