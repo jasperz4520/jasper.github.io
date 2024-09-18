@@ -5,25 +5,40 @@ const io = require('socket.io')(http)
 
 const port = process.env.PORT || 8000
 
+const currentUserNames = {}
+const arr = ['兔梅林', '小兔派', '兔甘娜']
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html')
 })
 
+let num = 0;
 io.on('connection', (socket) => { 
-    let num = 1;
   console.log('Client connected') 
-  socket.on('disconnect', () => { 
+  io.emit('notifyCCurrentUserCount', `${++num}`)
+
+  socket.on('ToSMessage', (msg) => { 
+    io.emit('ToCMessage', `${currentUserNames[msg.fromId]}说: ${msg.msg}`) 
+  }) 
+
+  socket.on('ToSChangeName', (data) => { 
+    const {newName, myId} = data;
+    currentUserNames[myId] = newName
+    io.emit('ToCYourNameChanged', `${newName}`) 
+    notifyCCurrentUserNames()
+  }) 
+
+  socket.on('ToSQueryButtonClicked', (msg) => { 
+    io.emit('ToCQueryButtonClickedResponse', msg) 
+  }) 
+
+  socket.on('disconnect', (aa) => {
+    io.emit('notifyCCurrentUserCount', `${--num}`)
     console.log('Client disconnected') 
-  }) 
+  });
 
-  socket.on('message', (msg) => { 
-    num = msg
-    io.emit('message', `现在是${num}`) 
-  }) 
-
-  socket.on('queryButtonClicked', (msg) => { 
-    io.emit('queryButtonClickedResponse', msg) 
-  }) 
+  function notifyCCurrentUserNames () {
+    io.emit('notifyCCurrentUserNames', Object.values(currentUserNames))
+  }
 }) 
 
 http.listen(port, () => { 
