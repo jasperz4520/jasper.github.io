@@ -5,24 +5,48 @@ const io = require('socket.io')(http)
 
 const port = process.env.PORT || 8000
 
-const currentUserNames = {}
-const arr = ['兔梅林', '小兔派', '兔甘娜']
+const currentUsers = {}
+const arr = [
+    {roleId: 'ml', role: '兔梅林', desc: ''},
+    {roleId: 'pai', role: '小兔派', desc: ''},
+    {roleId: 'mgn', role: '兔甘娜', desc: ''},
+    {roleId: 'zc', role: '兔忠臣', desc: ''},
+    {roleId: 'ck', role: '兔刺客', desc: ''}]
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html')
 })
 
-let num = 0;
+function aa() {}
+
+function shuffleArray(array) {
+    let currentIndex = array.length;
+
+    // While there remain elements to shuffle...
+    while (currentIndex != 0) {
+
+        // Pick a remaining element...
+        let randomIndex = Math.floor(Math.random() * currentIndex);
+        currentIndex--;
+
+        // And swap it with the current element.
+        [array[currentIndex], array[randomIndex]] = [
+        array[randomIndex], array[currentIndex]];
+    }
+}
+
+let roster = {}
+
 io.on('connection', (socket) => { 
+  console.log(socket)
   console.log('Client connected') 
-  io.emit('notifyCCurrentUserCount', `${++num}`)
 
   socket.on('ToSMessage', (msg) => { 
-    io.emit('ToCMessage', `${currentUserNames[msg.fromId]}说: ${msg.msg}`) 
+    io.emit('ToCMessage', `${currentUsers[msg.fromId]}说: ${msg.msg}`) 
   }) 
 
   socket.on('ToSChangeName', (data) => { 
     const {newName, myId} = data;
-    currentUserNames[myId] = newName
+    currentUsers[myId] = newName
     io.emit('ToCSomeonesNameChanged', data) 
     notifyCCurrentUserNames()
   }) 
@@ -31,14 +55,32 @@ io.on('connection', (socket) => {
     io.emit('ToCQueryButtonClickedResponse', msg) 
   }) 
 
+  socket.on('ToSStartGameButtonClicked', (msg) => { 
+    shuffleArray(arr)
+    let i = 0;
+    roster = {roleToName: {}}
+    for(const userId in currentUsers) {
+        roster[userId] = arr[i++];
+        const role = roster[userId].roleId;
+        roster.roleToName[role] = currentUsers[userId]
+    }
+    fanoutRoster(roster)
+  }) 
+
   socket.on('disconnect', (aa, bb) => {
-    io.emit('notifyCCurrentUserCount', `${--num}`)
     console.log(`${aa} ----------  ${bb}`) 
   });
 
   function notifyCCurrentUserNames () {
-    io.emit('notifyCCurrentUserNames', Object.values(currentUserNames))
+    io.emit('notifyCCurrentUserNames', Object.values(currentUsers))
   }
+
+  function fanoutRoster(roster) {
+    console.log(roster)
+    io.emit('ToCRosterUpdate', roster)
+  }
+
+  notifyCCurrentUserNames()
 }) 
 
 http.listen(port, () => { 

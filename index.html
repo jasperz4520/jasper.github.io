@@ -2,46 +2,129 @@
   <!-- <link rel="stylesheet" type="text/css" href="main.css" /> -->
   <body>
     <div id="totalNumber">
-      房间里总人数: 2
+      房间里总人数: 
     </div>
     <div id="allUserNames">
       人员列表: 
     </div>
+    <ul id="roster"></ul>
     <h2 id="myName"></h2>
-    <form id="form" action=""><input id="input" autocomplete="off" /><button>发消息</button></form>
+    <!-- <form id="form" action=""><input id="input" autocomplete="off" /><button>发消息</button></form> -->
     <!-- <button id="query">查询</button> -->
-
+    
     在这里改名字
     <form id="changeNameForm" action=""><input id="changeNameInput" autocomplete="off" /><button>改我的名字</button></form>
     <ul id="messages"></ul>
 
-    <img src="/src/assets/fourppl.jpg" alt="Dinosaur" />
+    <br><br><br><br><br><br>
+    <button id="startGame">Start Game</button>
+    <h1 id="myRole">My Role: </h1>
+    <h1 id="myInfo">Information: </h1>
+    <!-- <h1 id="currentState">Current State: </h1> -->
+    <!-- <h1 id="errMsg">Error: </h1> -->
 
     <script src="/socket.io/socket.io.js"></script>
+    <!-- <script src="./myJs.js"></script> -->
     <script>
       function makeid(length) {
-          let result = '';
-          const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-          const charactersLength = characters.length;
-          let counter = 0;
-          while (counter < length) {
-            result += characters.charAt(Math.floor(Math.random() * charactersLength));
-            counter += 1;
-          }
-          return result;
+        let result = '';
+        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        const charactersLength = characters.length;
+        let counter = 0;
+        while (counter < length) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+          counter += 1;
+        }
+        return result;
       }
 
-      const myId = makeid(6);
-      var socket = io()
+      function getCookie(cname) {
+        let name = cname + "=";
+        let decodedCookie = decodeURIComponent(document.cookie);
+        let ca = decodedCookie.split(';');
+        for(let i = 0; i <ca.length; i++) {
+          let c = ca[i];
+          while (c.charAt(0) == ' ') {
+            c = c.substring(1);
+          }
+          if (c.indexOf(name) == 0) {
+            return c.substring(name.length, c.length);
+          }
+        }
+        return "";
+      }
 
+      function checkCookieAndReturnAvalonId() {
+        let myAvalonId = getCookie("avalonId");
+        if (myAvalonId != "") {
+          console.log("avalonId Cookie exsited " + myAvalonId);
+          socket.emit('ToSChangeName', { newName: getCookie('avalonName') || '', myId: myAvalonId})
+          return myAvalonId
+        } else {
+          const localId = makeid(6)
+          document.cookie = `avalonId=${localId}`
+          console.log("New avalonId cookie created " + localId);
+          socket.emit('ToSChangeName', { newName: '', myId: localId})
+          return localId
+        }
+      }
+
+      function shuffleArray(array) {
+        let currentIndex = array.length;
+
+        // While there remain elements to shuffle...
+        while (currentIndex != 0) {
+
+            // Pick a remaining element...
+            let randomIndex = Math.floor(Math.random() * currentIndex);
+            currentIndex--;
+
+            // And swap it with the current element.
+            [array[currentIndex], array[randomIndex]] = [
+            array[randomIndex], array[currentIndex]];
+        }
+      }
+
+      function getAffliateInfo() {
+        const arr = []
+        let text = ''
+        if(localRoster[myId].roleId === 'ml') {
+          arr.push(localRoster.roleToName.mgn)
+          arr.push(localRoster.roleToName.ck)
+          text = 'All the evils are '
+        } else if(localRoster[myId].roleId === 'mgn') {
+          arr.push(localRoster.roleToName.ck)
+          text = 'Other evils are '
+        } else if(localRoster[myId].roleId === 'ck') {
+          arr.push(localRoster.roleToName.mgn)
+          text = 'Other evils are '
+        } else if(localRoster[myId].roleId === 'pai') {
+          arr.push(localRoster.roleToName.ml)
+          arr.push(localRoster.roleToName.mgn)
+          text = 'Merlin and Morgana include '
+        }
+
+        shuffleArray(arr)
+        return {text, arr}
+      }
+
+
+
+      var socket = io()
       var myName = document.getElementById('myName')
       var form = document.getElementById('form')
       var input = document.getElementById('input')
       const queryButton = document.getElementById('query')
+      const startGameButton = document.getElementById('startGame')
       const changeNameForm = document.getElementById('changeNameForm')
       const changeNameInput = document.getElementById('changeNameInput')
       const totalNumber = document.getElementById('totalNumber')
       const allUserNames = document.getElementById('allUserNames')
+      let localRoster = {}
+      const myId = checkCookieAndReturnAvalonId()
+      myName.innerHTML = `My Name is ${getCookie('avalonName') || ''}`
+
+      console.log(document.cookie)
 
       if(form) form.addEventListener('submit', function (e) {
         e.preventDefault()
@@ -56,46 +139,76 @@
         socket.emit('ToSQueryButtonClicked', 123)
       })
 
-      socket.emit('ToSChangeName', { newName: 'TUTUSHU', myId})
+      if(startGameButton) startGameButton.addEventListener('click', (e) => {
+        e.preventDefault()
+        socket.emit('ToSStartGameButtonClicked', 123)
+      })
 
       changeNameForm.addEventListener('submit', function (e) {
+        console.log(caches)
         e.preventDefault()
         if (changeNameInput.value) {
           socket.emit('ToSChangeName', { newName: changeNameInput.value, myId})
+          document.cookie = `avalonName=${changeNameInput.value}`
           changeNameInput.value = ''
         }
       })
 
       socket.on('ToCMessage', function (msg) {
-        printNewLine(msg)
+        printNewLineToEle(msg, messages)
+      })
+
+      socket.on('ToCRosterUpdate', function (data) {
+        localRoster = data;
+        const {text, arr} = getAffliateInfo()
+        console.log(`text: ${text}, arr: ${arr}`)
+        for(const id in data) {
+          if(id === myId) {
+            myRole.innerHTML = `My Role: ${data[id].role}`
+            myInfo.innerHTML = `Information: ${text} ${arr}`
+            break;
+          }
+        }
+      })
+
+      socket.on('ToCUpdateCurrentState', function (msg) {
+        currentState.innerHTML = `Current State: ${msg}`
       })
 
       socket.on('ToCSomeonesNameChanged', function (data) {
         if(data.myId == myId){
           myName.innerHTML = `My Name is ${data.newName}`
+          document.cookie = `avalonName=${data.newName}`
         }
+        console.log(document.cookie)
       })
 
       socket.on('notifyCCurrentUserNames', function (msg) {
+        console.log(msg)
+        while (roster.firstChild) {
+          roster.removeChild(roster.firstChild)
+        }
+        for(const username of msg) {
+          printNewLineToEle(username, roster)
+        }
         totalNumber.innerHTML = `房间里总人数: ${msg.length}`
-        allUserNames.innerHTML = `人员列表: ${msg}`
+        // allUserNames.innerHTML = `人员列表: ${msg}`
       })
 
-      socket.on('notifyCCurrentUserCount', function (msg) {
-        totalNumber.innerHTML = `房间里总人数: ${msg}`
-      })
+      // socket.on('notifyCCurrentUserCount', function (msg) {
+      //   totalNumber.innerHTML = `房间里总人数: ${msg}`
+      // })
 
       socket.on('ToCQueryButtonClickedResponse', function (msg) {
-        printNewLine(`查询结果: ${msg}`)
+        printNewLineToEle(`查询结果: ${msg}`, messages)
       })
 
-      function printNewLine(msg) {
-        msg = JSON.stringify(msg)
+      function printNewLineToEle(msg, ele) {
         var item = document.createElement('li')
-        item.textContent = msg
-        messages.appendChild(item)
+        item.textContent = JSON.stringify(msg)
+        ele.appendChild(item)
         window.scrollTo(0, document.body.scrollHeight)
       }
-    </script>
+     </script>
   </body>
 </html>
