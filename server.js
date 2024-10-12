@@ -10,13 +10,15 @@ const arr = [
     {roleId: 'ml', role: '兔梅林', desc: ''},
     {roleId: 'pai', role: '小兔派', desc: ''},
     {roleId: 'mgn', role: '兔甘娜', desc: ''},
-    {roleId: 'zc', role: '兔忠臣', desc: ''},
+    // {roleId: 'zc', role: '兔忠臣', desc: ''},
+    {roleId: 'abl', role: '兔奥伯伦', desc: ''},
+    // {roleId: 'zy', role: '兔爪牙', desc: ''},
+    // {roleId: 'mdld', role: '兔莫德雷德', desc: ''},
     {roleId: 'ck', role: '兔刺客', desc: ''}]
+
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html')
 })
-
-function aa() {}
 
 function shuffleArray(array) {
     let currentIndex = array.length;
@@ -40,9 +42,9 @@ io.on('connection', (socket) => {
   console.log(socket)
   console.log('Client connected') 
 
-  socket.on('ToSMessage', (msg) => { 
-    io.emit('ToCMessage', `${currentUsers[msg.fromId]}说: ${msg.msg}`) 
-  }) 
+  // socket.on('ToSMessage', (msg) => { 
+  //   io.emit('ToCMessage', `${currentUsers[msg.fromId]}说: ${msg.msg}`) 
+  // }) 
 
   socket.on('ToSChangeName', (data) => { 
     const {newName, myId} = data;

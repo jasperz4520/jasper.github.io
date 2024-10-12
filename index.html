@@ -87,25 +87,63 @@
 
       function getAffliateInfo() {
         const arr = []
-        let text = ''
+        let textArr = []
         if(localRoster[myId].roleId === 'ml') {
           arr.push(localRoster.roleToName.mgn)
           arr.push(localRoster.roleToName.ck)
-          text = 'All the evils are '
+          arr.push(localRoster.roleToName.zy)
+          arr.push(localRoster.roleToName.abl)
+          shuffleArray(arr)
+          textArr.push(`All the evils include ${arr}. You cannot see Mordred`)
         } else if(localRoster[myId].roleId === 'mgn') {
-          arr.push(localRoster.roleToName.ck)
-          text = 'Other evils are '
+          if(localRoster.roleToName.ck) {
+            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+          }
+          if(localRoster.roleToName.zy) {
+            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          }
+          if(localRoster.roleToName.mdld) {
+            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          }
         } else if(localRoster[myId].roleId === 'ck') {
-          arr.push(localRoster.roleToName.mgn)
-          text = 'Other evils are '
+          if(localRoster.roleToName.mgn) {
+            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+          }
+          if(localRoster.roleToName.zy) {
+            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          }
+          if(localRoster.roleToName.mdld) {
+            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          }
         } else if(localRoster[myId].roleId === 'pai') {
           arr.push(localRoster.roleToName.ml)
           arr.push(localRoster.roleToName.mgn)
-          text = 'Merlin and Morgana include '
-        }
-
-        shuffleArray(arr)
-        return {text, arr}
+          shuffleArray(arr)
+          textArr.push(`Merlin and Morgana include ${arr}`)
+        } else if(localRoster[myId].roleId === 'abl') {
+          textArr = 'Merlin knows you. Your evil teammates do not know you. '
+        } else if(localRoster[myId].roleId === 'mdld') {
+          if(localRoster.roleToName.mgn) {
+            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+          }
+          if(localRoster.roleToName.zy) {
+            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          }
+          if(localRoster.roleToName.ck) {
+            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+          }
+        } else if(localRoster[myId].roleId === 'zy') {
+          if(localRoster.roleToName.mgn) {
+            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+          }
+          if(localRoster.roleToName.mdld) {
+            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          }
+          if(localRoster.roleToName.ck) {
+            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+          }
+        } 
+        return textArr
       }
 
 
@@ -160,12 +198,12 @@
 
       socket.on('ToCRosterUpdate', function (data) {
         localRoster = data;
-        const {text, arr} = getAffliateInfo()
-        console.log(`text: ${text}, arr: ${arr}`)
+        const textArr = getAffliateInfo()
+        console.log(`textArr: ${textArr}`)
         for(const id in data) {
           if(id === myId) {
             myRole.innerHTML = `My Role: ${data[id].role}`
-            myInfo.innerHTML = `Information: ${text} ${arr}`
+            myInfo.innerHTML = `Information: ${textArr} `
             break;
           }
         }
@@ -206,6 +244,13 @@
       function printNewLineToEle(msg, ele) {
         var item = document.createElement('li')
         item.textContent = JSON.stringify(msg)
+        item.onclick = function () {
+          if(!item.style.backgroundColor || item.style.backgroundColor == 'transparent') {
+            item.style.backgroundColor = 'grey'
+          } else {
+            item.style.backgroundColor = ''
+          }
+        };
         ele.appendChild(item)
         window.scrollTo(0, document.body.scrollHeight)
       }
