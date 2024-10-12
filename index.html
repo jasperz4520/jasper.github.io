@@ -9,8 +9,6 @@
     </div>
     <ul id="roster"></ul>
     <h2 id="myName"></h2>
-    <!-- <form id="form" action=""><input id="input" autocomplete="off" /><button>发消息</button></form> -->
-    <!-- <button id="query">查询</button> -->
     
     在这里改名字
     <form id="changeNameForm" action=""><input id="changeNameInput" autocomplete="off" /><button>改我的名字</button></form>
@@ -18,9 +16,13 @@
 
     <br><br><br><br><br><br>
     <button id="startGame">Start Game</button>
+    <button id="fache">Fa Che</button>
+    <button id="missionSuccess">missionSuccess</button>
+    <button id="missionFailure">missionFailure</button>
     <h1 id="myRole">My Role: </h1>
-    <h1 id="myInfo">Information: </h1>
-    <!-- <h1 id="currentState">Current State: </h1> -->
+    <h1 id="myInfo">Info: </h1>
+    <h1 id="currentState">Current State: </h1>
+    <h1 id="result">Result: </h1>
     <!-- <h1 id="errMsg">Error: </h1> -->
 
     <script src="/socket.io/socket.io.js"></script>
@@ -55,16 +57,17 @@
       }
 
       function checkCookieAndReturnAvalonId() {
+        console.log('checkCookieAndReturnAvalonId')
         let myAvalonId = getCookie("avalonId");
         if (myAvalonId != "") {
           console.log("avalonId Cookie exsited " + myAvalonId);
-          socket.emit('ToSChangeName', { newName: getCookie('avalonName') || '', myId: myAvalonId})
+          socket.emit('ToSChangeName', { newName: getCookie('avalonName') || 'defaultName', myId: myAvalonId})
           return myAvalonId
         } else {
-          const localId = makeid(6)
+          const localId = makeid(12)
           document.cookie = `avalonId=${localId}`
           console.log("New avalonId cookie created " + localId);
-          socket.emit('ToSChangeName', { newName: '', myId: localId})
+          socket.emit('ToSChangeName', { newName: 'defaultName', myId: localId})
           return localId
         }
       }
@@ -88,99 +91,117 @@
       function getAffliateInfo() {
         const arr = []
         let textArr = []
-        if(localRoster[myId].roleId === 'ml') {
-          arr.push(localRoster.roleToName.mgn)
-          arr.push(localRoster.roleToName.ck)
-          arr.push(localRoster.roleToName.zy)
-          arr.push(localRoster.roleToName.abl)
+        console.log(localCurrentGame)
+        if(!localCurrentGame.roster[myId]?.roleInfo) return ['invalid info']
+
+        if(localCurrentGame.roster[myId].roleInfo.roleId === 'ml') {
+          arr.push(localCurrentGame.roleIdToUserInfo.mgn?.displayName)
+          arr.push(localCurrentGame.roleIdToUserInfo.ck?.displayName)
+          arr.push(localCurrentGame.roleIdToUserInfo.zy?.displayName)
+          arr.push(localCurrentGame.roleIdToUserInfo.abl?.displayName)
           shuffleArray(arr)
           textArr.push(`All the evils include ${arr}. You cannot see Mordred`)
-        } else if(localRoster[myId].roleId === 'mgn') {
-          if(localRoster.roleToName.ck) {
-            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'mgn') {
+          if(localCurrentGame.roleIdToUserInfo.ck) {
+            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
           }
-          if(localRoster.roleToName.zy) {
-            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          if(localCurrentGame.roleIdToUserInfo.zy) {
+            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
           }
-          if(localRoster.roleToName.mdld) {
-            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          if(localCurrentGame.roleIdToUserInfo.mdld) {
+            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
           }
-        } else if(localRoster[myId].roleId === 'ck') {
-          if(localRoster.roleToName.mgn) {
-            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'ck') {
+          if(localCurrentGame.roleIdToUserInfo.mgn) {
+            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
           }
-          if(localRoster.roleToName.zy) {
-            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          if(localCurrentGame.roleIdToUserInfo.zy) {
+            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
           }
-          if(localRoster.roleToName.mdld) {
-            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          if(localCurrentGame.roleIdToUserInfo.mdld) {
+            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
           }
-        } else if(localRoster[myId].roleId === 'pai') {
-          arr.push(localRoster.roleToName.ml)
-          arr.push(localRoster.roleToName.mgn)
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'pai') {
+          arr.push(localCurrentGame.roleIdToUserInfo.ml?.displayName)
+          arr.push(localCurrentGame.roleIdToUserInfo.mgn?.displayName)
           shuffleArray(arr)
           textArr.push(`Merlin and Morgana include ${arr}`)
-        } else if(localRoster[myId].roleId === 'abl') {
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'abl') {
           textArr = 'Merlin knows you. Your evil teammates do not know you. '
-        } else if(localRoster[myId].roleId === 'mdld') {
-          if(localRoster.roleToName.mgn) {
-            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'mdld') {
+          if(localCurrentGame.roleIdToUserInfo.mgn) {
+            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
           }
-          if(localRoster.roleToName.zy) {
-            textArr.push(`Zhaoya is ${localRoster.roleToName.zy}`)
+          if(localCurrentGame.roleIdToUserInfo.zy) {
+            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
           }
-          if(localRoster.roleToName.ck) {
-            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+          if(localCurrentGame.roleIdToUserInfo.ck) {
+            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
           }
-        } else if(localRoster[myId].roleId === 'zy') {
-          if(localRoster.roleToName.mgn) {
-            textArr.push(`Morgana is ${localRoster.roleToName.mgn}`)
+        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'zy') {
+          if(localCurrentGame.roleIdToUserInfo.mgn) {
+            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
           }
-          if(localRoster.roleToName.mdld) {
-            textArr.push(`Mordred is ${localRoster.roleToName.mdld}`)
+          if(localCurrentGame.roleIdToUserInfo.mdld) {
+            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
           }
-          if(localRoster.roleToName.ck) {
-            textArr.push(`Assassin is ${localRoster.roleToName.ck}`)
+          if(localCurrentGame.roleIdToUserInfo.ck) {
+            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
           }
         } 
         return textArr
       }
 
 
-
       var socket = io()
       var myName = document.getElementById('myName')
-      var form = document.getElementById('form')
-      var input = document.getElementById('input')
-      const queryButton = document.getElementById('query')
       const startGameButton = document.getElementById('startGame')
+      const facheButton = document.getElementById('fache')
+      const missionSuccessButton = document.getElementById('missionSuccess')
+      const missionFailureButton = document.getElementById('missionFailure')
       const changeNameForm = document.getElementById('changeNameForm')
       const changeNameInput = document.getElementById('changeNameInput')
       const totalNumber = document.getElementById('totalNumber')
       const allUserNames = document.getElementById('allUserNames')
-      let localRoster = {}
+      const currentState = document.getElementById('currentState')
+      const result = document.getElementById('result')
       const myId = checkCookieAndReturnAvalonId()
       myName.innerHTML = `My Name is ${getCookie('avalonName') || ''}`
+      let resultInitialized = false
+      
+      let localCurrentGame = {}
+      let userIdToUserElement = {}
 
       console.log(document.cookie)
-
-      if(form) form.addEventListener('submit', function (e) {
-        e.preventDefault()
-        if (input.value) {
-          socket.emit('ToSMessage', {msg: input.value, fromId: myId})
-          input.value = ''
-        }
-      })
-
-      if(queryButton) queryButton.addEventListener('click', (e) => {
-        e.preventDefault()
-        socket.emit('ToSQueryButtonClicked', 123)
-      })
 
       if(startGameButton) startGameButton.addEventListener('click', (e) => {
         e.preventDefault()
         socket.emit('ToSStartGameButtonClicked', 123)
       })
+
+      if(facheButton) facheButton.addEventListener('click', (e) => {
+        e.preventDefault()
+        if(isMeLeader()) socket.emit('ToSFache', 123)
+      })
+
+      if(missionSuccessButton) {
+        missionSuccessButton.style.display = 'none'
+        missionSuccessButton.addEventListener('click', (e) => {
+          e.preventDefault()
+          socket.emit('ToSSubmitVote', {decision: 'success', fromId: myId})
+          missionSuccessButton.style.display = 'none'
+          missionFailureButton.style.display = 'none'
+        })
+      }
+      if(missionFailureButton) {
+        missionFailureButton.style.display = 'none'
+        missionFailureButton.addEventListener('click', (e) => {
+          e.preventDefault()
+          socket.emit('ToSSubmitVote', {decision: 'failure', fromId: myId})
+          missionSuccessButton.style.display = 'none'
+          missionFailureButton.style.display = 'none'
+        })
+      }
 
       changeNameForm.addEventListener('submit', function (e) {
         console.log(caches)
@@ -192,68 +213,92 @@
         }
       })
 
-      socket.on('ToCMessage', function (msg) {
-        printNewLineToEle(msg, messages)
-      })
-
-      socket.on('ToCRosterUpdate', function (data) {
-        localRoster = data;
-        const textArr = getAffliateInfo()
-        console.log(`textArr: ${textArr}`)
-        for(const id in data) {
-          if(id === myId) {
-            myRole.innerHTML = `My Role: ${data[id].role}`
-            myInfo.innerHTML = `Information: ${textArr} `
-            break;
-          }
+      socket.on('ToCCurrentGameRoster', function (data) {
+        localCurrentGame = data;
+        console.log(localCurrentGame)
+        if(localCurrentGame.state !== 'Waiting for start'){
+          const textArr = getAffliateInfo()
+          myInfo.innerHTML = `Info: ${textArr} `
+          myRole.innerHTML = `My Role: ${localCurrentGame.roster[myId].roleInfo.roleName}`
         }
-      })
+        updateState(localCurrentGame.state)
+        totalNumber.innerHTML = `房间里总人数: ${Object.keys(localCurrentGame.roster).length}`
 
-      socket.on('ToCUpdateCurrentState', function (msg) {
-        currentState.innerHTML = `Current State: ${msg}`
-      })
-
-      socket.on('ToCSomeonesNameChanged', function (data) {
-        if(data.myId == myId){
-          myName.innerHTML = `My Name is ${data.newName}`
-          document.cookie = `avalonName=${data.newName}`
-        }
-        console.log(document.cookie)
-      })
-
-      socket.on('notifyCCurrentUserNames', function (msg) {
-        console.log(msg)
+        console.log(roster)
         while (roster.firstChild) {
           roster.removeChild(roster.firstChild)
         }
-        for(const username of msg) {
-          printNewLineToEle(username, roster)
+        for(const userId in localCurrentGame.roster) {
+          printNewLineToEle(localCurrentGame.roster[userId].userInfo.displayName, roster, localCurrentGame.roster[userId])
         }
-        totalNumber.innerHTML = `房间里总人数: ${msg.length}`
-        // allUserNames.innerHTML = `人员列表: ${msg}`
+
+        if(localCurrentGame.state === 'Vote inprogress' && localCurrentGame.selectedUserIds[myId]) showVoteBtn();
+        for(const userId in localCurrentGame.roster){
+          if(localCurrentGame.selectedUserIds[userId]) userIdToUserElement[userId].style.backgroundColor = 'grey'
+          else userIdToUserElement[userId].style.backgroundColor = ''
+        }
       })
 
-      // socket.on('notifyCCurrentUserCount', function (msg) {
-      //   totalNumber.innerHTML = `房间里总人数: ${msg}`
-      // })
-
-      socket.on('ToCQueryButtonClickedResponse', function (msg) {
-        printNewLineToEle(`查询结果: ${msg}`, messages)
+      socket.on('ToCNotifyVoteResults', function (data) {
+        if(resultInitialized) return;
+        fillResultZone(data)
+        resultInitialized = true
       })
 
-      function printNewLineToEle(msg, ele) {
+      socket.on('ToCVoteComplete', function (data) {
+        printNewLineToEle(data, result)
+        var children = [].slice.call(roster.children);
+        children.forEach((ele) => {
+          ele.style.backgroundColor = ''
+        })
+      })
+
+      function updateState(state){
+        currentState.innerHTML = `Current State: ${state}`
+      }
+
+      function fillResultZone(results) {
+        for(const res of results){
+          printNewLineToEle(res, result)
+        }
+      }
+
+      function showVoteBtn() {
+        missionSuccessButton.style.display = 'block'
+        missionFailureButton.style.display = 'block'
+      }
+
+      function isMeLeader() {
+        return localCurrentGame.leaderId && localCurrentGame.leaderId === myId
+      }
+
+      function selectUser(userId) {
+        console.log(isMeLeader())
+        if(!isMeLeader()) return;
+        socket.emit('ToSSelectUser', userId);
+      }
+
+      function printNewLineToEle(msg, ele, additionalData) {
         var item = document.createElement('li')
         item.textContent = JSON.stringify(msg)
-        item.onclick = function () {
-          if(!item.style.backgroundColor || item.style.backgroundColor == 'transparent') {
-            item.style.backgroundColor = 'grey'
-          } else {
-            item.style.backgroundColor = ''
-          }
-        };
+        if(additionalData){
+          userIdToUserElement[additionalData.userInfo.id] = item
+          item.onclick = function () {
+            selectUser(additionalData.userInfo.id)
+          };
+        }
         ele.appendChild(item)
-        window.scrollTo(0, document.body.scrollHeight)
+        // window.scrollTo(0, document.body.scrollHeight)
       }
+
+      function toggleElementBGColor(ele) {
+        if(!ele.style.backgroundColor || ele.style.backgroundColor == 'transparent') {
+          ele.style.backgroundColor = 'grey'
+        } else {
+          ele.style.backgroundColor = ''
+        }
+      }
+
      </script>
   </body>
 </html>

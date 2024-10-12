@@ -5,16 +5,15 @@ const io = require('socket.io')(http)
 
 const port = process.env.PORT || 8000
 
-const currentUsers = {}
 const arr = [
-    {roleId: 'ml', role: '兔梅林', desc: ''},
-    {roleId: 'pai', role: '小兔派', desc: ''},
-    {roleId: 'mgn', role: '兔甘娜', desc: ''},
-    // {roleId: 'zc', role: '兔忠臣', desc: ''},
-    {roleId: 'abl', role: '兔奥伯伦', desc: ''},
-    // {roleId: 'zy', role: '兔爪牙', desc: ''},
-    // {roleId: 'mdld', role: '兔莫德雷德', desc: ''},
-    {roleId: 'ck', role: '兔刺客', desc: ''}]
+    {roleId: 'ml', roleName: '兔梅林', desc: ''},
+    {roleId: 'pai', roleName: '小兔派', desc: ''},
+    {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
+    // {roleId: 'zc', roleName: '兔忠臣', desc: ''},
+    {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
+    // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
+    // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
+    {roleId: 'ck', roleName: '兔刺客', desc: ''}]
 
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html')
@@ -36,53 +35,82 @@ function shuffleArray(array) {
     }
 }
 
-let roster = {}
+let currentGame = {state: 'Waiting for start', roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}}
+let enableSelectingUsers = true;
+let voteResult = {};
+let pastResults = []
 
 io.on('connection', (socket) => { 
-  console.log(socket)
+  fanoutRoster()
+  io.emit('ToCNotifyVoteResults', pastResults)
+  // console.log(socket)
   console.log('Client connected') 
-
-  // socket.on('ToSMessage', (msg) => { 
-  //   io.emit('ToCMessage', `${currentUsers[msg.fromId]}说: ${msg.msg}`) 
-  // }) 
 
   socket.on('ToSChangeName', (data) => { 
     const {newName, myId} = data;
-    currentUsers[myId] = newName
-    io.emit('ToCSomeonesNameChanged', data) 
-    notifyCCurrentUserNames()
+    if(!currentGame.roster[myId]) currentGame.roster[myId] = {}
+    currentGame.roster[myId].userInfo = {displayName: newName, id: myId}
+    fanoutRoster()
   }) 
 
-  socket.on('ToSQueryButtonClicked', (msg) => { 
-    io.emit('ToCQueryButtonClickedResponse', msg) 
+  socket.on('ToSSelectUser', (userId) => { 
+    if(!enableSelectingUsers) return
+    console.log('select uesr')
+    if(currentGame.selectedUserIds[userId]) delete currentGame.selectedUserIds[userId]
+    else currentGame.selectedUserIds[userId] = true
+    fanoutRoster()
+  }) 
+
+  socket.on('ToSFache', (data) => { 
+    enableSelectingUsers = false
+    voteResult = {}
+    console.log(currentGame.selectedUserIds)
+    currentGame.state = 'Vote inprogress'
+    fanoutRoster()
+  }) 
+
+  socket.on('ToSSubmitVote', (data) => { 
+    voteResult[data.fromId] = data.decision;
+    if(Object.keys(voteResult).length === Object.keys(currentGame.selectedUserIds).length) {
+      let suc = 0, fai = 0;
+      Object.values(voteResult).forEach((res) => {
+        if(res == 'success') suc++;
+        else if(res == 'failure') fai++;
+        else throw new Error('invalid vote result')
+      })
+      const result = `Success count: ${suc}, failure count: ${fai}`
+      pastResults.push(result)
+      io.emit('ToCVoteComplete', result)
+      currentGame.state = 'Vote complete. Waiting for next round'
+      currentGame.selectedUserIds = {};
+      enableSelectingUsers = true;
+      // next leader
+      fanoutRoster()
+    }
   }) 
 
   socket.on('ToSStartGameButtonClicked', (msg) => { 
     shuffleArray(arr)
+    currentGame.state = 'Game Started'
+    
     let i = 0;
-    roster = {roleToName: {}}
-    for(const userId in currentUsers) {
-        roster[userId] = arr[i++];
-        const role = roster[userId].roleId;
-        roster.roleToName[role] = currentUsers[userId]
+    for(const userId in currentGame.roster) {
+      if(i == 0) currentGame.leaderId = currentGame.roster[userId].userInfo.id
+      currentGame.roster[userId].roleInfo = arr[i++];
+      const roleId = currentGame.roster[userId].roleInfo.roleId
+      currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
     }
-    fanoutRoster(roster)
+    fanoutRoster()
   }) 
+  
+  function fanoutRoster() {
+    // console.log(currentGame)
+    io.emit('ToCCurrentGameRoster', currentGame)
+  }
 
   socket.on('disconnect', (aa, bb) => {
-    console.log(`${aa} ----------  ${bb}`) 
+    // console.log(`${aa} ----------  ${bb}`) 
   });
-
-  function notifyCCurrentUserNames () {
-    io.emit('notifyCCurrentUserNames', Object.values(currentUsers))
-  }
-
-  function fanoutRoster(roster) {
-    console.log(roster)
-    io.emit('ToCRosterUpdate', roster)
-  }
-
-  notifyCCurrentUserNames()
 }) 
 
 http.listen(port, () => { 
