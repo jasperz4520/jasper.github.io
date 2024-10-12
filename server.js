@@ -9,8 +9,8 @@ const arr = [
     {roleId: 'ml', roleName: '兔梅林', desc: ''},
     {roleId: 'pai', roleName: '小兔派', desc: ''},
     {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
-    // {roleId: 'zc', roleName: '兔忠臣', desc: ''},
-    {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
+    {roleId: 'zc', roleName: '兔忠臣', desc: ''},
+    // {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
     // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
     // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
     {roleId: 'ck', roleName: '兔刺客', desc: ''}]
