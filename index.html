@@ -61,13 +61,13 @@
         let myAvalonId = getCookie("avalonId");
         if (myAvalonId != "") {
           console.log("avalonId Cookie exsited " + myAvalonId);
-          socket.emit('ToSChangeName', { newName: getCookie('avalonName') || 'defaultName', myId: myAvalonId})
+          socket.emit('ToSChangeName', { displayName: getCookie('avalonName') || 'defaultName', id: myAvalonId})
           return myAvalonId
         } else {
           const localId = makeid(12)
           document.cookie = `avalonId=${localId}`
           console.log("New avalonId cookie created " + localId);
-          socket.emit('ToSChangeName', { newName: 'defaultName', myId: localId})
+          socket.emit('ToSChangeName', { displayName: 'defaultName', id: localId})
           return localId
         }
       }
@@ -91,7 +91,6 @@
       function getAffliateInfo() {
         const arr = []
         let textArr = []
-        console.log(localCurrentGame)
         if(!localCurrentGame.roster[myId]?.roleInfo) return ['invalid info']
 
         if(localCurrentGame.roster[myId].roleInfo.roleId === 'ml') {
@@ -207,7 +206,7 @@
         console.log(caches)
         e.preventDefault()
         if (changeNameInput.value) {
-          socket.emit('ToSChangeName', { newName: changeNameInput.value, myId})
+          socket.emit('ToSChangeName', { displayName: changeNameInput.value, id: myId})
           document.cookie = `avalonName=${changeNameInput.value}`
           changeNameInput.value = ''
         }
@@ -216,21 +215,26 @@
       socket.on('ToCCurrentGameRoster', function (data) {
         localCurrentGame = data;
         console.log(localCurrentGame)
-        if(localCurrentGame.state !== 'Waiting for start'){
-          const textArr = getAffliateInfo()
-          myInfo.innerHTML = `Info: ${textArr} `
-          myRole.innerHTML = `My Role: ${localCurrentGame.roster[myId].roleInfo.roleName}`
-        }
-        updateState(localCurrentGame.state)
-        totalNumber.innerHTML = `房间里总人数: ${Object.keys(localCurrentGame.roster).length}`
 
-        console.log(roster)
         while (roster.firstChild) {
           roster.removeChild(roster.firstChild)
         }
         for(const userId in localCurrentGame.roster) {
           printNewLineToEle(localCurrentGame.roster[userId].userInfo.displayName, roster, localCurrentGame.roster[userId])
         }
+
+        if(localCurrentGame.state !== 'Waiting for start'){
+          const textArr = getAffliateInfo()
+          const leaderId = localCurrentGame.leaderId
+          myInfo.innerHTML = `Info: ${textArr} `
+          myRole.innerHTML = `My Role: ${localCurrentGame.roster[myId].roleInfo.roleName}`
+          userIdToUserElement[leaderId].innerHTML = `Leader: ${localCurrentGame.roster[leaderId].userInfo.displayName}`
+          userIdToUserElement[leaderId].style['font-weight'] = 'bold'
+          console.log(localCurrentGame)
+          console.log(userIdToUserElement)
+        }
+        updateState(localCurrentGame.state)
+        totalNumber.innerHTML = `房间里总人数: ${Object.keys(localCurrentGame.roster).length}`
 
         if(localCurrentGame.state === 'Vote inprogress' && localCurrentGame.selectedUserIds[myId]) showVoteBtn();
         for(const userId in localCurrentGame.roster){

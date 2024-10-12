@@ -35,21 +35,22 @@ function shuffleArray(array) {
     }
 }
 
-let currentGame = {state: 'Waiting for start', roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}}
+let currentGame = {state: 'Waiting for start', roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: []}
 let enableSelectingUsers = true;
 let voteResult = {};
 let pastResults = []
 
 io.on('connection', (socket) => { 
-  fanoutRoster()
-  io.emit('ToCNotifyVoteResults', pastResults)
-  // console.log(socket)
-  console.log('Client connected') 
-
-  socket.on('ToSChangeName', (data) => { 
-    const {newName, myId} = data;
-    if(!currentGame.roster[myId]) currentGame.roster[myId] = {}
-    currentGame.roster[myId].userInfo = {displayName: newName, id: myId}
+  socket.on('ToSChangeName', (userInfo) => { 
+    if(!currentGame.roster[userInfo.id]){
+      if(!currentGame.state !== 'Waiting for start') return;
+      else{
+        console.log('addeddddddddddddd')
+        currentGame.roster[userInfo.id] = {};
+        currentGame.userInfoArr.push(userInfo)
+      }
+    }
+    currentGame.roster[userInfo.id].userInfo = userInfo
     fanoutRoster()
   }) 
 
@@ -95,7 +96,8 @@ io.on('connection', (socket) => {
     
     let i = 0;
     for(const userId in currentGame.roster) {
-      if(i == 0) currentGame.leaderId = currentGame.roster[userId].userInfo.id
+      shuffleArray(currentGame.userInfoArr)
+      currentGame.leaderId = currentGame.userInfoArr[0].id
       currentGame.roster[userId].roleInfo = arr[i++];
       const roleId = currentGame.roster[userId].roleInfo.roleId
       currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
@@ -111,6 +113,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', (aa, bb) => {
     // console.log(`${aa} ----------  ${bb}`) 
   });
+
+  fanoutRoster()
+  io.emit('ToCNotifyVoteResults', pastResults)
+  // console.log(socket)
+  console.log('Client connected') 
 }) 
 
 http.listen(port, () => { 
