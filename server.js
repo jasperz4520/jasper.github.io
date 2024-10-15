@@ -6,14 +6,21 @@ const io = require('socket.io')(http)
 const port = process.env.PORT || 8000
 
 const arr = [
-    {roleId: 'ml', roleName: '兔梅林', desc: ''},
-    {roleId: 'pai', roleName: '小兔派', desc: ''},
-    {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
-    {roleId: 'zc', roleName: '兔忠臣', desc: ''},
-    // {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
-    // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
-    // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
-    {roleId: 'ck', roleName: '兔刺客', desc: ''}]
+  {roleId: 'ml', roleName: '兔梅林', desc: ''},
+  {roleId: 'pai', roleName: '小兔派', desc: ''},
+  {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
+  {roleId: 'zc', roleName: '兔忠臣', desc: ''},
+  // {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
+  // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
+  // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
+  {roleId: 'ck', roleName: '兔刺客', desc: ''}
+]
+
+const STATE = {
+  WAITING_FOR_START: "Waiting for start",
+  GAME_STARTED: "Game Started",
+  VOTE_IN_PROGRESS: "Vote inprogress",
+}
 
 app.get('/', function (req, res) {
   res.sendFile(__dirname + '/index.html')
@@ -35,15 +42,17 @@ function shuffleArray(array) {
     }
 }
 
-let currentGame = {state: 'Waiting for start', roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: []}
+let currentGame = {state: STATE.WAITING_FOR_START, roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: []}
 let enableSelectingUsers = true;
 let voteResult = {};
 let pastResults = []
 
 io.on('connection', (socket) => { 
   socket.on('ToSChangeName', (userInfo) => { 
+    console.log('qqq')
     if(!currentGame.roster[userInfo.id]){
-      if(!currentGame.state !== 'Waiting for start') return;
+      console.log('ttt')
+      if(currentGame.state !== STATE.WAITING_FOR_START) return;
       else{
         console.log('addeddddddddddddd')
         currentGame.roster[userInfo.id] = {};
@@ -66,7 +75,7 @@ io.on('connection', (socket) => {
     enableSelectingUsers = false
     voteResult = {}
     console.log(currentGame.selectedUserIds)
-    currentGame.state = 'Vote inprogress'
+    currentGame.state = STATE.VOTE_IN_PROGRESS
     fanoutRoster()
   }) 
 
@@ -90,19 +99,33 @@ io.on('connection', (socket) => {
     }
   }) 
 
-  socket.on('ToSStartGameButtonClicked', (msg) => { 
-    shuffleArray(arr)
-    currentGame.state = 'Game Started'
-    
-    let i = 0;
-    for(const userId in currentGame.roster) {
-      shuffleArray(currentGame.userInfoArr)
-      currentGame.leaderId = currentGame.userInfoArr[0].id
-      currentGame.roster[userId].roleInfo = arr[i++];
-      const roleId = currentGame.roster[userId].roleInfo.roleId
-      currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
+  // [].slice.call(document.getElementsByClassName('bg-secondary')).forEach((a)=>{a.style.display = 'none'})
+  // [].slice.call(document.getElementsByClassName('bg-secondary')).forEach((a)=>{
+  //   const dd = a.parentNode
+  //   if(dd == dd.parentNode.children[9]){
+  //     dd.parentNode.style.display = 'none'
+  //   }
+  //   console.log(a.parentNode.parentNode.children.length)
+  // })
+
+  socket.on('ToSButtonClicked', (data) => { 
+    if(data === 'startGameButton'){
+      shuffleArray(arr)
+      currentGame.state = STATE.GAME_STARTED
+      
+      let i = 0;
+      for(const userId in currentGame.roster) {
+        shuffleArray(currentGame.userInfoArr)
+        currentGame.leaderId = currentGame.userInfoArr[0].id
+        currentGame.roster[userId].roleInfo = arr[i++];
+        const roleId = currentGame.roster[userId].roleInfo.roleId
+        currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
+      }
+      fanoutRoster()
+    } else if(data === 'resetGameButton'){
+      currentGame.state = STATE.WAITING_FOR_START
+
     }
-    fanoutRoster()
   }) 
   
   function fanoutRoster() {
