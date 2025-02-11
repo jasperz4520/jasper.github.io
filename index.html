@@ -287,18 +287,18 @@
         } else if(localCurrentGame.state === STATE.APPROVE_REJECT_IN_PROGRESS && localCurrentGame.selectedUserIds[myId]){
           showApproveRejectBtn();
         }
-        
+
         for(const userId in localCurrentGame.roster){
           if(localCurrentGame.selectedUserIds[userId]) userIdToUserElement[userId].style.backgroundColor = 'grey'
           else userIdToUserElement[userId].style.backgroundColor = ''
         }
       })
 
-      socket.on('ToCNotifyVoteResults', function (data) {
-        if(resultInitialized) return;
-        fillResultZone(data)
-        resultInitialized = true
-      })
+      // socket.on('ToCNotifyVoteResults', function (data) {
+      //   if(resultInitialized) return;
+      //   fillResultZone(data)
+      //   resultInitialized = true
+      // })
 
       socket.on('ToCVoteComplete', function (data) {
         printNewLineToEle(data, result)

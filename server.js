@@ -89,7 +89,6 @@ io.on('connection', (socket) => {
         else throw new Error('invalid vote result')
       })
       const result = `Success count: ${suc}, failure count: ${fai}`
-      pastResults.push(result)
       io.emit('ToCVoteComplete', result)
       currentGame.state = 'Vote complete. Waiting for next round'
       currentGame.selectedUserIds = {};
@@ -138,7 +137,6 @@ io.on('connection', (socket) => {
   });
 
   fanoutRoster()
-  io.emit('ToCNotifyVoteResults', pastResults)
   // console.log(socket)
   console.log('Client connected') 
 }) 
