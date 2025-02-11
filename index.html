@@ -17,6 +17,8 @@
     <button id="startGame">Start Game</button>
     <button id="resetGame">Reset</button>
     <button id="fache">Fa Che</button>
+    <button id="approve">Approve</button>
+    <button id="reject">Reject</button>
     <button id="missionSuccess">missionSuccess</button>
     <button id="missionFailure">missionFailure</button>
     <h1 id="myRole">My Role: </h1>
@@ -165,6 +167,8 @@
       const startGameButton = document.getElementById('startGame')
       const resetGameButton = document.getElementById('resetGame')
       const facheButton = document.getElementById('fache')
+      const approveButton = document.getElementById('approve')
+      const rejectButton = document.getElementById('reject')
       const missionSuccessButton = document.getElementById('missionSuccess')
       const missionFailureButton = document.getElementById('missionFailure')
       const changeNameForm = document.getElementById('changeNameForm')
@@ -201,6 +205,23 @@
         facheButton.style.display = 'none'
         if(isMeLeader()) socket.emit('ToSFache', 123)
       })
+
+      if(approveButton) {
+        approveButton.style.display = 'none'
+        approveButton.addEventListener('click', (e) => {
+          e.preventDefault()
+          socket.emit('ToSSubmitVote', {decision: 'approve', fromId: myId})
+          approveButton.style.display = 'none'
+        })
+      }
+      if(rejectButton) {
+        rejectButton.style.display = 'none'
+        rejectButton.addEventListener('click', (e) => {
+          e.preventDefault()
+          socket.emit('ToSSubmitVote', {decision: 'reject', fromId: myId})
+          rejectButton.style.display = 'none'
+        })
+      }
 
       if(missionSuccessButton) {
         missionSuccessButton.style.display = 'none'
