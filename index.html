@@ -213,6 +213,7 @@
           e.preventDefault()
           socket.emit('ToSSubmitVote', {decision: 'approve', fromId: myId})
           approveButton.style.display = 'none'
+          rejectButton.style.display = 'none'
         })
       }
       if(rejectButton) {
@@ -220,6 +221,7 @@
         rejectButton.addEventListener('click', (e) => {
           e.preventDefault()
           socket.emit('ToSSubmitVote', {decision: 'reject', fromId: myId})
+          approveButton.style.display = 'none'
           rejectButton.style.display = 'none'
         })
       }

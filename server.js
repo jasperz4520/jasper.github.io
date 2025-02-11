@@ -82,7 +82,7 @@ io.on('connection', (socket) => {
   socket.on('ToSSubmitVote', (data) => { 
     voteResult[data.fromId] = data.decision;
     if(Object.keys(voteResult).length === Object.keys(currentGame.selectedUserIds).length) {
-      if(successFailure){
+      if(data.decision === 'success' || data.decision === 'failure'){
         let suc = 0, fai = 0;
         Object.values(voteResult).forEach((res) => {
           if(res == 'success') suc++;
