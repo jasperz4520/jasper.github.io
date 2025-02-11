@@ -14,19 +14,16 @@
     <form id="changeNameForm" action=""><input id="changeNameInput" autocomplete="off" /><button>改我的名字</button></form>
     <ul id="messages"></ul>
 
-    <br><br><br><br><br><br>
     <button id="startGame">Start Game</button>
     <button id="resetGame">Reset</button>
-    <br><br><br><br>
     <button id="fache">Fa Che</button>
-    <br><br><br><br>
     <button id="missionSuccess">missionSuccess</button>
-    <br><br><br><br>
     <button id="missionFailure">missionFailure</button>
     <h1 id="myRole">My Role: </h1>
     <h1 id="myInfo">Info: </h1>
     <h1 id="currentState">Current State: </h1>
     <h1 id="result">Result: </h1>
+    <h1 id="voteHistory">voteHistory: </h1>
     <!-- <h1 id="errMsg">Error: </h1> -->
 
     <script src="/socket.io/socket.io.js"></script>
@@ -175,6 +172,7 @@
       const totalNumber = document.getElementById('totalNumber')
       const allUserNames = document.getElementById('allUserNames')
       const currentState = document.getElementById('currentState')
+      const voteHistory = document.getElementById('voteHistory')
       const result = document.getElementById('result')
       const myId = checkCookieAndReturnAvalonId()
       myName.innerHTML = `My Name is ${getCookie('avalonName') || ''}`
@@ -183,8 +181,8 @@
       let localCurrentGame = {}
       let userIdToUserElement = {}
 
-      const url = 'https://www.hao123.com/'
-      fetch(url).then((a) => {console.log(a)})
+      // const url = 'https://www.hao123.com/'
+      // fetch(url).then((a) => {console.log(a)})
 
       console.log(document.cookie)
 
