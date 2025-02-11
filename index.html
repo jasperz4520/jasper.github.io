@@ -262,7 +262,7 @@
           roster.removeChild(roster.firstChild)
         }
         for(const userId in localCurrentGame.roster) {
-          printNewLineToEle(localCurrentGame.roster[userId].userInfo.displayName, roster, localCurrentGame.roster[userId])
+          printNewLineToEle(localCurrentGame.roster[userId].userInfo.displayName, roster, localCurrentGame.roster[userId], false)
         }
 
         if(localCurrentGame.state !== STATE.WAITING_FOR_START){
@@ -292,6 +292,16 @@
           if(localCurrentGame.selectedUserIds[userId]) userIdToUserElement[userId].style.backgroundColor = 'grey'
           else userIdToUserElement[userId].style.backgroundColor = ''
         }
+
+        for(const histEntry of localCurrentGame.voteHistory){
+          let str = '';
+          for(const id in histEntry){
+            str+=id
+            str+=': '
+            str+=histEntry[id]
+          }
+          printNewLineToEle(str, voteHistory, undefined, true)
+        }
       })
 
       // socket.on('ToCNotifyVoteResults', function (data) {
@@ -301,7 +311,7 @@
       // })
 
       socket.on('ToCVoteComplete', function (data) {
-        printNewLineToEle(data, result)
+        printNewLineToEle(data, result, undefined, false)
         var children = [].slice.call(roster.children);
         children.forEach((ele) => {
           ele.style.backgroundColor = ''
@@ -314,7 +324,7 @@
 
       function fillResultZone(results) {
         for(const res of results){
-          printNewLineToEle(res, result)
+          printNewLineToEle(res, result, undefined, false)
         }
       }
 
@@ -338,7 +348,7 @@
         socket.emit('ToSSelectUser', userId);
       }
 
-      function printNewLineToEle(msg, ele, additionalData) {
+      function printNewLineToEle(msg, ele, additionalData, clearEle) {
         var item = document.createElement('li')
         item.textContent = JSON.stringify(msg)
         if(additionalData){

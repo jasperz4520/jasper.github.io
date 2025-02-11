@@ -8,17 +8,18 @@ const port = process.env.PORT || 8000
 const arr = [
   {roleId: 'ml', roleName: '兔梅林', desc: ''},
   {roleId: 'pai', roleName: '小兔派', desc: ''},
-  {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
-  {roleId: 'zc', roleName: '兔忠臣', desc: ''},
+  // {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
+  // {roleId: 'zc', roleName: '兔忠臣', desc: ''},
   // {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
   // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
   // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
-  {roleId: 'ck', roleName: '兔刺客', desc: ''}
+  // {roleId: 'ck', roleName: '兔刺客', desc: ''}
 ]
 
 const STATE = {
   WAITING_FOR_START: "Waiting for start",
   GAME_STARTED: "Game Started",
+  APPROVE_REJECT_IN_PROGRESS: "Waiting for approval or rejection",
   VOTE_IN_PROGRESS: "Vote inprogress",
 }
 
@@ -42,7 +43,7 @@ function shuffleArray(array) {
     }
 }
 
-let currentGame = {state: STATE.WAITING_FOR_START, roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: []}
+let currentGame = {state: STATE.WAITING_FOR_START, roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: [], voteHistory: []}
 let enableSelectingUsers = true;
 let voteResult = {};
 let pastResults = []
@@ -74,26 +75,31 @@ io.on('connection', (socket) => {
   socket.on('ToSFache', (data) => { 
     enableSelectingUsers = false
     voteResult = {}
-    console.log(currentGame.selectedUserIds)
-    currentGame.state = STATE.VOTE_IN_PROGRESS
+    currentGame.state = STATE.APPROVE_REJECT_IN_PROGRESS
     fanoutRoster()
   }) 
 
   socket.on('ToSSubmitVote', (data) => { 
     voteResult[data.fromId] = data.decision;
     if(Object.keys(voteResult).length === Object.keys(currentGame.selectedUserIds).length) {
-      let suc = 0, fai = 0;
-      Object.values(voteResult).forEach((res) => {
-        if(res == 'success') suc++;
-        else if(res == 'failure') fai++;
-        else throw new Error('invalid vote result')
-      })
-      const result = `Success count: ${suc}, failure count: ${fai}`
-      io.emit('ToCVoteComplete', result)
-      currentGame.state = 'Vote complete. Waiting for next round'
-      currentGame.selectedUserIds = {};
-      enableSelectingUsers = true;
-      // next leader
+      if(successFailure){
+        let suc = 0, fai = 0;
+        Object.values(voteResult).forEach((res) => {
+          if(res == 'success') suc++;
+          else if(res == 'failure') fai++;
+          else throw new Error('invalid vote result')
+        })
+        const result = `Success count: ${suc}, failure count: ${fai}`
+        io.emit('ToCVoteComplete', result)
+        currentGame.state = 'Vote complete. Waiting for next round'
+        currentGame.selectedUserIds = {};
+        enableSelectingUsers = true;
+        // next leader
+      } else{
+        currentGame.state = STATE.VOTE_IN_PROGRESS
+        currentGame.voteHistory.push(voteResult)
+        voteResult = {}
+      }
       fanoutRoster()
     }
   }) 
