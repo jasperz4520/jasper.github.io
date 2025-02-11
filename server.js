@@ -126,6 +126,7 @@ io.on('connection', (socket) => {
         const roleId = currentGame.roster[userId].roleInfo.roleId
         currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
       }
+      currentGame.voteHistory = []
       fanoutRoster()
     } else if(data === 'resetGameButton'){
       currentGame.state = STATE.WAITING_FOR_START

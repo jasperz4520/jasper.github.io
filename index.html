@@ -351,6 +351,7 @@
       }
 
       function printNewLineToEle(msg, ele, additionalData, clearEle) {
+        if(clearEle) ele.innerHTML = ''
         var item = document.createElement('li')
         item.textContent = JSON.stringify(msg)
         if(additionalData){
