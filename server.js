@@ -5,22 +5,9 @@ const io = require('socket.io')(http)
 
 const port = process.env.PORT || 8000
 
-const arr = [
-  {roleId: 'ml', roleName: '兔梅林', desc: ''},
-  {roleId: 'pai', roleName: '小兔派', desc: ''},
-  // {roleId: 'mgn', roleName: '兔甘娜', desc: ''},
-  // {roleId: 'zc', roleName: '兔忠臣', desc: ''},
-  // {roleId: 'abl', roleName: '兔奥伯伦', desc: ''},
-  // {roleId: 'zy', roleName: '兔爪牙', desc: ''},
-  // {roleId: 'mdld', roleName: '兔莫德雷德', desc: ''},
-  // {roleId: 'ck', roleName: '兔刺客', desc: ''}
-]
-
 const STATE = {
   WAITING_FOR_START: "Waiting for start",
-  GAME_STARTED: "Game Started",
-  APPROVE_REJECT_IN_PROGRESS: "Waiting for approval or rejection",
-  VOTE_IN_PROGRESS: "Vote inprogress",
+  WAITING_FOR_CAPTAIN_CHOOSE_DF_AND_DS: "Waiting for captain",
 }
 
 app.get('/', function (req, res) {
@@ -29,7 +16,6 @@ app.get('/', function (req, res) {
 
 function shuffleArray(array) {
     let currentIndex = array.length;
-
     // While there remain elements to shuffle...
     while (currentIndex != 0) {
 
@@ -43,107 +29,76 @@ function shuffleArray(array) {
     }
 }
 
-let currentGame = {state: STATE.WAITING_FOR_START, roster: {}, roleIdToUserInfo: {}, leaderId: '', selectedUserIds: {}, userInfoArr: [], voteHistory: []}
-let enableSelectingUsers = true;
-let voteResult = {};
-let pastResults = []
+let currentGame = {
+  state: STATE.WAITING_FOR_START, 
+  idToUserObj: {}, 
+  voteHistory: [],
+  lobby: {
+    numberToUserId: new Array(30),
+  }
+}
 
 io.on('connection', (socket) => { 
-  socket.on('ToSChangeName', (userInfo) => { 
-    console.log('qqq')
-    if(!currentGame.roster[userInfo.id]){
-      console.log('ttt')
-      if(currentGame.state !== STATE.WAITING_FOR_START) return;
-      else{
-        console.log('addeddddddddddddd')
-        currentGame.roster[userInfo.id] = {};
-        currentGame.userInfoArr.push(userInfo)
+  socket.on('ToSJoinGame', (data) => {
+    if(currentGame.state !== WAITING_FOR_START) return;
+    if(currentGame.lobby[data.id] && currentGame.lobby[data.id].name && currentGame.lobby[data.id].numberIWant) return;
+    currentGame.lobby[data.id] = {
+      id: data.id,
+      name: data.name,
+      numberIWant: data.numberIWant
+    };
+
+    fanoutCurrentGame();
+  })
+
+  socket.on('ToSStartGame', (data) => {
+    // if(!meetNumberRequirement()) {
+    //   io.emit('ToCToEveryoneNumberDisorder', '')
+    //   return;
+    // }
+
+    currentGame.state = STATE.WAITING_FOR_CAPTAIN_CHOOSE_DF_AND_DS
+
+    for(const id in currentGame.lobby){
+      currentGame.idToUserObj[id] = {
+        id,
+        name: currentGame.lobby[id].name,
+        alive: true,
+        gameRole: 'waiting',
+        managerRole: 'waiting',
+        guns: 0,
+        offDuty: false,
       }
     }
-    currentGame.roster[userInfo.id].userInfo = userInfo
-    fanoutRoster()
+    
+    fanoutCurrentGame();
   }) 
 
-  socket.on('ToSSelectUser', (userId) => { 
-    if(!enableSelectingUsers) return
-    console.log('select uesr')
-    if(currentGame.selectedUserIds[userId]) delete currentGame.selectedUserIds[userId]
-    else currentGame.selectedUserIds[userId] = true
-    fanoutRoster()
-  }) 
-
-  socket.on('ToSFache', (data) => { 
-    enableSelectingUsers = false
-    voteResult = {}
-    currentGame.state = STATE.APPROVE_REJECT_IN_PROGRESS
-    fanoutRoster()
-  }) 
-
-  socket.on('ToSSubmitVote', (data) => { 
-    voteResult[data.fromId] = data.decision;
-    if(Object.keys(voteResult).length === Object.keys(currentGame.selectedUserIds).length) {
-      if(data.decision === 'success' || data.decision === 'failure'){
-        let suc = 0, fai = 0;
-        Object.values(voteResult).forEach((res) => {
-          if(res == 'success') suc++;
-          else if(res == 'failure') fai++;
-          else throw new Error('invalid vote result')
-        })
-        const result = `Success count: ${suc}, failure count: ${fai}`
-        io.emit('ToCVoteComplete', result)
-        currentGame.state = 'Vote complete. Waiting for next round'
-        currentGame.selectedUserIds = {};
-        enableSelectingUsers = true;
-        // next leader
-      } else{
-        currentGame.state = STATE.VOTE_IN_PROGRESS
-        currentGame.voteHistory.push(voteResult)
-        voteResult = {}
-      }
-      fanoutRoster()
+  socket.on('ToSFromManagerEndGameBackToLobby', (data) => {
+    if(data.key !== 9872) return;
+    for(const key in currentGame){
+      if(key === 'lobby' || key === 'voteHistory') continue;
+      else if(key === 'idToUserObj') currentGame[key] = {};
+      else if(key === 'state') currentGame[key] = STATE.WAITING_FOR_START;
+      else delete currentGame[key];
     }
-  }) 
+  })
 
-  // [].slice.call(document.getElementsByClassName('bg-secondary')).forEach((a)=>{a.style.display = 'none'})
-  // [].slice.call(document.getElementsByClassName('bg-secondary')).forEach((a)=>{
-  //   const dd = a.parentNode
-  //   if(dd == dd.parentNode.children[9]){
-  //     dd.parentNode.style.display = 'none'
-  //   }
-  //   console.log(a.parentNode.parentNode.children.length)
-  // })
+  socket.on('ToSFromManagerKickUser', (data) => {
+    if(currentGame.state !== WAITING_FOR_START) return;
+    if(data.key !== 3459) return;
+    delete currentGame.lobby[data.id];
+  })
 
-  socket.on('ToSButtonClicked', (data) => { 
-    if(data === 'startGameButton'){
-      shuffleArray(arr)
-      currentGame.state = STATE.GAME_STARTED
-      
-      let i = 0;
-      for(const userId in currentGame.roster) {
-        shuffleArray(currentGame.userInfoArr)
-        currentGame.leaderId = currentGame.userInfoArr[0].id
-        currentGame.roster[userId].roleInfo = arr[i++];
-        const roleId = currentGame.roster[userId].roleInfo.roleId
-        currentGame.roleIdToUserInfo[roleId] = currentGame.roster[userId].userInfo
-      }
-      currentGame.voteHistory = []
-      fanoutRoster()
-    } else if(data === 'resetGameButton'){
-      currentGame.state = STATE.WAITING_FOR_START
-
-    }
-  }) 
-  
-  function fanoutRoster() {
+  function fanoutCurrentGame() {
     // console.log(currentGame)
-    io.emit('ToCCurrentGameRoster', currentGame)
+    io.emit('ToCCurrentGame', currentGame)
   }
 
   socket.on('disconnect', (aa, bb) => {
     // console.log(`${aa} ----------  ${bb}`) 
   });
 
-  fanoutRoster()
   // console.log(socket)
   console.log('Client connected') 
 }) 

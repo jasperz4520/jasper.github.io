@@ -1,377 +1,169 @@
-<html>
-  <!-- <link rel="stylesheet" type="text/css" href="main.css" /> -->
-  <body>
-    <div id="totalNumber">
-      房间里总人数: 
-    </div>
-    <div id="allUserNames">
-      人员列表: 
-    </div>
-    <ul id="roster"></ul>
-    <h2 id="myName"></h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Vote Form</title>
+  <style>
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 600px;
+    }
+    th, td {
+      border: 1px solid #333;
+      padding: 8px;
+      text-align: center;
+    }
+    th {
+      background: #f2f2f2;
+    }
+    /* fixed button on the right */
+    .fixed-button {
+      position: fixed;
+      right: 20px;   /* distance from right edge */
+      bottom: 20px;  /* distance from bottom */
+    }
+  </style>
+</head>
+<body>
+  
+
+  <form id="lobby">
+    <h2>Lobby</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>Number</th>
+          <th>Name</th>
+          <th>ID</th>
+          <th>Manager Role</th>
+        </tr>
+      </thead>
+      <tbody id="lobbyBody">
+        <!-- Only 1 row -->
+        <tr>
+          <td>1</td>
+          <td>Alice</td>
+          <td>12345</td>
+          <td>Manager</td>
+        </tr>
+      </tbody>
+    </table>
+  </form>
+
+  <form id="gameForm">
+    <label for="numberIWant">Number I Want:</label>
+    <input type="number" id="numberIWant" name="numberIWant" />
+    <br><br>
+
+    <label for="myName">My Name:</label>
+    <input type="text" id="myName" name="myName" />
+    <br><br>
+
+    <button id="joinGame" type="submit">Join Game</button>
+  </form>
+
+  <form id="voteForm">
+    <table id="voteTable">
+      <tr id="userRow"></tr>
+      <!-- vote rows will be added below -->
+    </table>
+  </form>
+
+  <button class="fixed-button" type="button"
+          onclick="addVoteRow([1,0,1,0,0,1,0,1,0])">
+    Simulate Vote
+  </button>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    var socket = io()
+    // initialize header row with 1–9
     
-    在这里改名字928555
-    <form id="changeNameForm" action=""><input id="changeNameInput" autocomplete="off" /><button>改我的名字</button></form>
-    <ul id="messages"></ul>
 
-    <button id="startGame">Start Game</button>
-    <button id="resetGame">Reset</button>
-    <button id="fache">Fa Che</button>
-    <button id="approve">Approve</button>
-    <button id="reject">Reject</button>
-    <button id="missionSuccess">missionSuccess</button>
-    <button id="missionFailure">missionFailure</button>
-    <h1 id="myRole">My Role: </h1>
-    <h1 id="myInfo">Info: </h1>
-    <h1 id="currentState">Current State: </h1>
-    <h1 id="result">Result: </h1>
-    <h1 id="voteHistory">voteHistory: </h1>
-    <!-- <h1 id="errMsg">Error: </h1> -->
-
-    <script src="/socket.io/socket.io.js"></script>
-    <!-- <script src="./myJs.js"></script> -->
-    <script>
-      const STATE = {
-        WAITING_FOR_START: "Waiting for start",
-        GAME_STARTED: "Game Started",
-        APPROVE_REJECT_IN_PROGRESS: "Waiting for approval or rejection",
-        VOTE_IN_PROGRESS: "Vote inprogress",
+    // add a new vote row (array of 9 values: 0 or 1)
+    function addVoteRow(votes) {
+      const table = document.getElementById("voteTable");
+      const row = document.createElement("tr");
+      for (let i = 0; i < 9; i++) {
+        const cell = document.createElement("td");
+        cell.textContent = votes[i] ?? "";
+        row.appendChild(cell);
       }
-      
-      function makeid(length) {
-        let result = '';
-        const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        const charactersLength = characters.length;
-        let counter = 0;
-        while (counter < length) {
-          result += characters.charAt(Math.floor(Math.random() * charactersLength));
-          counter += 1;
-        }
-        return result;
-      }
+      table.appendChild(row);
+    }
 
-      function getCookie(cname) {
-        let name = cname + "=";
-        let decodedCookie = decodeURIComponent(document.cookie);
-        let ca = decodedCookie.split(';');
-        for(let i = 0; i <ca.length; i++) {
-          let c = ca[i];
-          while (c.charAt(0) == ' ') {
-            c = c.substring(1);
-          }
-          if (c.indexOf(name) == 0) {
-            return c.substring(name.length, c.length);
-          }
-        }
-        return "";
+    function generateId() {
+      return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8);
+    }
+    function getOrCreateUserId() {
+      let id = localStorage.getItem("userId");
+      if (!id) {
+        id = generateId();
+        localStorage.setItem("userId", id);
       }
+      return id;
+    }
 
-      function checkCookieAndReturnAvalonId() {
-        console.log('checkCookieAndReturnAvalonId')
-        console.log(document.cookie)
-        let myAvalonId = getCookie("avalonId");
-        if (myAvalonId != "") {
-          console.log("avalonId Cookie exsited " + myAvalonId);
-          socket.emit('ToSChangeName', { displayName: getCookie('avalonName') || 'defaultName', id: myAvalonId})
-          return myAvalonId
-        } else {
-          const localId = makeid(12)
-          document.cookie = `avalonId=${localId}`
-          console.log("New avalonId cookie created " + localId);
-          socket.emit('ToSChangeName', { displayName: 'defaultName', id: localId})
-          return localId
+    ///////////////////////////////////////
+
+    const joinGame = document.getElementById("joinGame");
+    const numberIWant = document.getElementById("numberIWant");
+    const myName = document.getElementById("myName");
+
+    joinGame.addEventListener("click", () => {
+      if (!numberIWant.value || !myName.value) {
+        alert("Please enter a number and name before joining");
+        return;
+      }
+      if (numberIWant.value <= 0) {
+        alert("Please enter a positive number");
+        return;
+      }
+      socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, myName: myName.value})
+      numberIWant.value = '';
+      myName.value = '';
+    });
+
+    const userRow = document.getElementById("userRow");
+    for (let i = 1; i <= 9; i++) {
+      const cell = document.createElement("td");
+      cell.textContent = i;
+      userRow.appendChild(cell);
+    }
+
+
+    socket.on('ToCCurrentGame', function (data) {
+      if(data.state === "Waiting for captain") {
+        const h1 = document.createElement("h1");
+        h1.textContent = "Game Started!";
+        h1.style.textAlign = "center";
+        document.body.insertBefore(h1, document.body.firstChild);
+
+        for(const id in data.lobby){
+          addRowToLobby(data.lobby[id])
         }
       }
+    })
 
-      function shuffleArray(array) {
-        let currentIndex = array.length;
+    function addRowToLobby(info){
+      const tbody = document.getElementById("lobbyBody");
+      const row = document.createElement("tr");
+      const numberCell = document.createElement("td");
+      numberCell.textContent = info.numberIWant
+      const nameCell = document.createElement("td");
+      nameCell.textContent = info.name;
+      const idCell = document.createElement("td");
+      idCell.textContent = id;
+      const roleCell = document.createElement("td");
+      roleCell.textContent = 'hh';
 
-        // While there remain elements to shuffle...
-        while (currentIndex != 0) {
-
-            // Pick a remaining element...
-            let randomIndex = Math.floor(Math.random() * currentIndex);
-            currentIndex--;
-
-            // And swap it with the current element.
-            [array[currentIndex], array[randomIndex]] = [
-            array[randomIndex], array[currentIndex]];
-        }
-      }
-
-      function getAffliateInfo() {
-        const arr = []
-        let textArr = []
-        if(!localCurrentGame.roster[myId]?.roleInfo) return ['invalid info']
-
-        if(localCurrentGame.roster[myId].roleInfo.roleId === 'ml') {
-          arr.push(localCurrentGame.roleIdToUserInfo.mgn?.displayName)
-          arr.push(localCurrentGame.roleIdToUserInfo.ck?.displayName)
-          arr.push(localCurrentGame.roleIdToUserInfo.zy?.displayName)
-          arr.push(localCurrentGame.roleIdToUserInfo.abl?.displayName)
-          shuffleArray(arr)
-          textArr.push(`All the evils include ${arr}. You cannot see Mordred`)
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'mgn') {
-          if(localCurrentGame.roleIdToUserInfo.ck) {
-            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.zy) {
-            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.mdld) {
-            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
-          }
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'ck') {
-          if(localCurrentGame.roleIdToUserInfo.mgn) {
-            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.zy) {
-            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.mdld) {
-            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
-          }
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'pai') {
-          arr.push(localCurrentGame.roleIdToUserInfo.ml?.displayName)
-          arr.push(localCurrentGame.roleIdToUserInfo.mgn?.displayName)
-          shuffleArray(arr)
-          textArr.push(`Merlin and Morgana include ${arr}`)
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'abl') {
-          textArr = 'Merlin knows you. Your evil teammates do not know you. '
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'mdld') {
-          if(localCurrentGame.roleIdToUserInfo.mgn) {
-            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.zy) {
-            textArr.push(`Zhaoya is ${localCurrentGame.roleIdToUserInfo.zy?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.ck) {
-            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
-          }
-        } else if(localCurrentGame.roster[myId].roleInfo.roleId === 'zy') {
-          if(localCurrentGame.roleIdToUserInfo.mgn) {
-            textArr.push(`Morgana is ${localCurrentGame.roleIdToUserInfo.mgn?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.mdld) {
-            textArr.push(`Mordred is ${localCurrentGame.roleIdToUserInfo.mdld?.displayName}`)
-          }
-          if(localCurrentGame.roleIdToUserInfo.ck) {
-            textArr.push(`Assassin is ${localCurrentGame.roleIdToUserInfo.ck?.displayName}`)
-          }
-        } 
-        return textArr
-      }
-
-
-      var socket = io()
-      var myName = document.getElementById('myName')
-      const startGameButton = document.getElementById('startGame')
-      const resetGameButton = document.getElementById('resetGame')
-      const facheButton = document.getElementById('fache')
-      const approveButton = document.getElementById('approve')
-      const rejectButton = document.getElementById('reject')
-      const missionSuccessButton = document.getElementById('missionSuccess')
-      const missionFailureButton = document.getElementById('missionFailure')
-      const changeNameForm = document.getElementById('changeNameForm')
-      const changeNameInput = document.getElementById('changeNameInput')
-      const totalNumber = document.getElementById('totalNumber')
-      const allUserNames = document.getElementById('allUserNames')
-      const currentState = document.getElementById('currentState')
-      const voteHistory = document.getElementById('voteHistory')
-      const result = document.getElementById('result')
-      const myId = checkCookieAndReturnAvalonId()
-      myName.innerHTML = `My Name is ${getCookie('avalonName') || ''}`
-      let resultInitialized = false
-      
-      let localCurrentGame = {}
-      let userIdToUserElement = {}
-
-      // const url = 'https://www.hao123.com/'
-      // fetch(url).then((a) => {console.log(a)})
-
-      console.log(document.cookie)
-
-      if(startGameButton) startGameButton.addEventListener('click', (e) => {
-        e.preventDefault()
-        socket.emit('ToSButtonClicked', 'startGameButton')
-      })
-
-      if(resetGameButton) resetGameButton.addEventListener('click', (e) => {
-        e.preventDefault()
-        socket.emit('ToSButtonClicked', 'resetGameButton')
-      })
-
-      if(facheButton) facheButton.addEventListener('click', (e) => {
-        e.preventDefault()
-        facheButton.style.display = 'none'
-        if(isMeLeader()) socket.emit('ToSFache', 123)
-      })
-
-      if(approveButton) {
-        approveButton.style.display = 'none'
-        approveButton.addEventListener('click', (e) => {
-          e.preventDefault()
-          socket.emit('ToSSubmitVote', {decision: 'approve', fromId: myId})
-          approveButton.style.display = 'none'
-          rejectButton.style.display = 'none'
-        })
-      }
-      if(rejectButton) {
-        rejectButton.style.display = 'none'
-        rejectButton.addEventListener('click', (e) => {
-          e.preventDefault()
-          socket.emit('ToSSubmitVote', {decision: 'reject', fromId: myId})
-          approveButton.style.display = 'none'
-          rejectButton.style.display = 'none'
-        })
-      }
-
-      if(missionSuccessButton) {
-        missionSuccessButton.style.display = 'none'
-        missionSuccessButton.addEventListener('click', (e) => {
-          e.preventDefault()
-          socket.emit('ToSSubmitVote', {decision: 'success', fromId: myId})
-          missionSuccessButton.style.display = 'none'
-          missionFailureButton.style.display = 'none'
-        })
-      }
-      if(missionFailureButton) {
-        missionFailureButton.style.display = 'none'
-        missionFailureButton.addEventListener('click', (e) => {
-          e.preventDefault()
-          socket.emit('ToSSubmitVote', {decision: 'failure', fromId: myId})
-          missionSuccessButton.style.display = 'none'
-          missionFailureButton.style.display = 'none'
-        })
-      }
-
-      changeNameForm.addEventListener('submit', function (e) {
-        console.log(caches)
-        e.preventDefault()
-        if (changeNameInput.value) {
-          socket.emit('ToSChangeName', { displayName: changeNameInput.value, id: myId})
-          document.cookie = `avalonName=${changeNameInput.value}`
-          changeNameInput.value = ''
-        }
-      })
-
-      socket.on('ToCCurrentGameRoster', function (data) {
-        localCurrentGame = data;
-        if(!localCurrentGame.roster[myId]?.userInfo) return
-        console.log(localCurrentGame)
-
-        while (roster.firstChild) {
-          roster.removeChild(roster.firstChild)
-        }
-        for(const userId in localCurrentGame.roster) {
-          printNewLineToEle(localCurrentGame.roster[userId].userInfo.displayName, roster, localCurrentGame.roster[userId], false)
-        }
-
-        if(localCurrentGame.state !== STATE.WAITING_FOR_START){
-          const textArr = getAffliateInfo()
-          const leaderId = localCurrentGame.leaderId
-          myInfo.innerHTML = `Info: ${textArr} `
-          myRole.innerHTML = `My Role: ${localCurrentGame.roster[myId].roleInfo.roleName}`
-          userIdToUserElement[leaderId].innerHTML = `Leader: ${localCurrentGame.roster[leaderId].userInfo.displayName}`
-          userIdToUserElement[leaderId].style['font-weight'] = 'bold'
-        }
-        updateState(localCurrentGame.state)
-        totalNumber.innerHTML = `房间里总人数: ${Object.keys(localCurrentGame.roster).length}`
-
-        if(localCurrentGame.leaderId === myId) {
-          facheButton.style.display = 'block'
-        } else {
-          facheButton.style.display = 'none'
-        }
-
-        if(localCurrentGame.state === STATE.VOTE_IN_PROGRESS && localCurrentGame.selectedUserIds[myId]) {
-          showVoteBtn();
-        } else if(localCurrentGame.state === STATE.APPROVE_REJECT_IN_PROGRESS && localCurrentGame.selectedUserIds[myId]){
-          showApproveRejectBtn();
-        }
-
-        for(const userId in localCurrentGame.roster){
-          if(localCurrentGame.selectedUserIds[userId]) userIdToUserElement[userId].style.backgroundColor = 'grey'
-          else userIdToUserElement[userId].style.backgroundColor = ''
-        }
-
-        for(const histEntry of localCurrentGame.voteHistory){
-          let str = '';
-          for(const id in histEntry){
-            str+=id
-            str+=': '
-            str+=histEntry[id]
-          }
-          printNewLineToEle(str, voteHistory, undefined, true)
-        }
-      })
-
-      // socket.on('ToCNotifyVoteResults', function (data) {
-      //   if(resultInitialized) return;
-      //   fillResultZone(data)
-      //   resultInitialized = true
-      // })
-
-      socket.on('ToCVoteComplete', function (data) {
-        printNewLineToEle(data, result, undefined, false)
-        var children = [].slice.call(roster.children);
-        children.forEach((ele) => {
-          ele.style.backgroundColor = ''
-        })
-      })
-
-      function updateState(state){
-        currentState.innerHTML = `Current State: ${state}`
-      }
-
-      function fillResultZone(results) {
-        for(const res of results){
-          printNewLineToEle(res, result, undefined, false)
-        }
-      }
-
-      function showApproveRejectBtn() {
-        approveButton.style.display = 'block'
-        rejectButton.style.display = 'block'
-      }
-
-      function showVoteBtn() {
-        missionSuccessButton.style.display = 'block'
-        missionFailureButton.style.display = 'block'
-      }
-
-      function isMeLeader() {
-        return localCurrentGame.leaderId && localCurrentGame.leaderId === myId
-      }
-
-      function selectUser(userId) {
-        console.log(isMeLeader())
-        if(!isMeLeader()) return;
-        socket.emit('ToSSelectUser', userId);
-      }
-
-      function printNewLineToEle(msg, ele, additionalData, clearEle) {
-        if(clearEle) ele.innerHTML = ''
-        var item = document.createElement('li')
-        item.textContent = JSON.stringify(msg)
-        if(additionalData){
-          userIdToUserElement[additionalData.userInfo.id] = item
-          item.onclick = function () {
-            selectUser(additionalData.userInfo.id)
-          };
-        }
-        ele.appendChild(item)
-        // window.scrollTo(0, document.body.scrollHeight)
-      }
-
-      function toggleElementBGColor(ele) {
-        if(!ele.style.backgroundColor || ele.style.backgroundColor == 'transparent') {
-          ele.style.backgroundColor = 'grey'
-        } else {
-          ele.style.backgroundColor = ''
-        }
-      }
-
-     </script>
-  </body>
+      row.appendChild(numberCell);
+      row.appendChild(nameCell);
+      row.appendChild(idCell);
+      row.appendChild(roleCell);
+      tbody.appendChild(row);
+    }
+  </script>
+</body>
 </html>
