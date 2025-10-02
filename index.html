@@ -97,10 +97,10 @@
       return Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8);
     }
     function getOrCreateUserId() {
-      let id = localStorage.getItem("userId");
+      let id = localStorage.getItem("userIdYuchen");
       if (!id) {
         id = generateId();
-        localStorage.setItem("userId", id);
+        localStorage.setItem("userIdYuchen", id);
       }
       return id;
     }
