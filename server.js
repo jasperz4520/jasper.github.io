@@ -40,7 +40,7 @@ let currentGame = {
 
 io.on('connection', (socket) => { 
   socket.on('ToSJoinGame', (data) => {
-    if(currentGame.state !== WAITING_FOR_START) return;
+    if(currentGame.state !== STATE.WAITING_FOR_START) return;
     if(currentGame.lobby[data.id] && currentGame.lobby[data.id].name && currentGame.lobby[data.id].numberIWant) return;
     currentGame.lobby[data.id] = {
       id: data.id,
