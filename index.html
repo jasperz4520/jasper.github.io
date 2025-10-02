@@ -142,6 +142,7 @@
         document.body.insertBefore(h1, document.body.firstChild);
 
         for(const id in data.lobby){
+          if(id == 'numberToUserId') continue;
           addRowToLobby(data.lobby[id])
         }
       // }
