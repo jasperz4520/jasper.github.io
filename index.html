@@ -40,13 +40,6 @@
         </tr>
       </thead>
       <tbody id="lobbyBody">
-        <!-- Only 1 row -->
-        <tr>
-          <td>1</td>
-          <td>Alice</td>
-          <td>12345</td>
-          <td>Manager</td>
-        </tr>
       </tbody>
     </table>
   </form>
@@ -140,13 +133,17 @@
         h1.textContent = "Game Started!";
         h1.style.textAlign = "center";
         document.body.insertBefore(h1, document.body.firstChild);
-
+        clearLobby()
         for(const id in data.lobby){
-          if(id == 'numberToUserId') continue;
           addRowToLobby(data.lobby[id])
         }
       // }
     })
+
+    function clearLobby(info){
+      const tbody = document.getElementById("lobbyBody");
+      tbody.innerHTML = ''
+    }
 
     function addRowToLobby(info){
       const tbody = document.getElementById("lobbyBody");

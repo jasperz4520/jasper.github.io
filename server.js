@@ -33,16 +33,13 @@ let currentGame = {
   state: STATE.WAITING_FOR_START, 
   idToUserObj: {}, 
   voteHistory: [],
-  lobby: {
-    numberToUserId: new Array(30),
-  }
+  lobby: {}
 }
 
 io.on('connection', (socket) => { 
   socket.on('ToSJoinGame', (data) => {
     console.log(11)
-    // if(currentGame.state !== STATE.WAITING_FOR_START) return;
-    // if(currentGame.lobby[data.id] && currentGame.lobby[data.id].name && currentGame.lobby[data.id].numberIWant) return;
+    if(currentGame.state !== STATE.WAITING_FOR_START) return;
     currentGame.lobby[data.id] = {
       id: data.id,
       name: data.name,
