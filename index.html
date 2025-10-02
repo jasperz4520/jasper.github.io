@@ -120,9 +120,9 @@
         alert("Please enter a positive number");
         return;
       }
-      socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, myName: myName.value})
+      socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, name: myName.value})
       // numberIWant.value = '';
-      // myName.value = '';
+      // name.value = '';
     });
 
     const userRow = document.getElementById("userRow");
