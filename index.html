@@ -135,7 +135,7 @@
 
     socket.on('ToCCurrentGame', function (data) {
       console.log(11)
-      if(data.state === "Waiting for captain") {
+      // if(data.state === "Waiting for captain") {
         const h1 = document.createElement("h1");
         h1.textContent = "Game Started!";
         h1.style.textAlign = "center";
@@ -144,7 +144,7 @@
         for(const id in data.lobby){
           addRowToLobby(data.lobby[id])
         }
-      }
+      // }
     })
 
     function addRowToLobby(info){
