@@ -121,8 +121,8 @@
         return;
       }
       socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, myName: myName.value})
-      numberIWant.value = '';
-      myName.value = '';
+      // numberIWant.value = '';
+      // myName.value = '';
     });
 
     const userRow = document.getElementById("userRow");
