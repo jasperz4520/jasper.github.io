@@ -59,15 +59,27 @@
       <button id="joinGame" type="button">Join Game</button>
     </form>
 
-    <form id="managerPanel" style="margin-bottom:30px; border: 1px solid #ccc; border-radius: 8px; padding: 15px; background-color: #f9f9f9; box-shadow: 2px 2px 6px rgba(0,0,0,0.1);">
-      <label for="managerUserNumberInput">User Number:</label>
-      <input type="text" id="managerUserNumberInput" name="managerUserNumberInput" />
-      <label for="managerTextInput">Input(startGame/endGame/captain/mry/wyj/minimumGuns/xipai):</label>
-      <input type="text" id="managerTextInput" name="managerTextInput" />
-
+    <form id="managerPanel" style="display: none; margin-bottom:30px; border: 1px solid #ccc; border-radius: 8px; padding: 15px; background-color: #f9f9f9; box-shadow: 2px 2px 6px rgba(0,0,0,0.1);">
+      <h3>Manager Panel</h3>
+      <label for="managerUserNumberInput" style="display: block; margin-bottom: 5px;">User Number:</label>
+      <input type="text" id="managerUserNumberInput" name="managerUserNumberInput" style="display: block; margin-bottom: 5px;"/>
+      <label for="managerTextInput" style="display: block; margin-bottom: 5px;">Input(startGame/endGame/captain/mry/wyj/minimumGuns/xipai):</label>
+      <input type="text" id="managerTextInput" name="managerTextInput" style="display: block; margin-bottom: 5px;"/>
       <button id="managerSubmit" type="button">Submit</button>
     </form>
   </div>
+
+  <form id="operatorPanel" style="margin-bottom:30px; border: 1px solid #ccc; border-radius: 8px; padding: 15px; background-color: #f9f9f9; box-shadow: 2px 2px 6px rgba(0,0,0,0.1);">
+    <h3>Operator Panel</h3>
+    <h4 id="operatorPanelInfo"></h4>
+    <label for="operatorPanelInput1" style="display: block; margin-bottom: 5px;">Input:</label>
+    <input type="text" id="operatorPanelInput1" name="operatorPanelInput1" style="display: block; margin-bottom: 5px;"/>
+    <label for="operatorPanelInput2" style="display: block; margin-bottom: 5px;">Input:</label>
+    <input type="text" id="operatorPanelInput2" name="operatorPanelInput2" style="display: block; margin-bottom: 5px;"/>
+    <label for="operatorPanelInput3" style="display: block; margin-bottom: 5px;">Input:</label>
+    <input type="text" id="operatorPanelInput3" name="operatorPanelInput3" style="display: block; margin-bottom: 5px;"/>
+    <button id="operatorSubmit" type="button">Submit</button>
+  </form>
 
   <form id="voteForm">
     <table id="voteTable">
@@ -83,11 +95,29 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+    // Function section START
     var socket = io()
-    // initialize header row with 1–9
-    
+    const STATE = {
+      WAITING_FOR_START: "Waiting for start",
+      CAPTAIN_SELECTING_DF_DS: "Captain selecting DF DS",
+      CAPTAIN_DF_SELECTING_CARDS: "Captain DF selecting cards",
+      DS_SELECTING_CARDS: "DS selecting cards",
+      WAITING_FOR_WYJ_KEEP_OR_DISCARD_CARD: "Waiting for wyj",
+      WAITING_FOR_START: "Waiting for start",
+      WAITING_FOR_CAPTAIN_CHOOSE_DF_AND_DS: "Waiting for captain",
+    }
 
-    // add a new vote row (array of 9 values: 0 or 1)
+    const GAME_ROLE = {
+      DEFAULT: "Default",
+      CAPTAIN_SELECTING_PEOPLE: "CaptainSelectingPeople",
+      CAPTAIN_SELECTING_CARDS: "CaptainSelectingCards",
+      DF: "Df",
+      DS: "Ds",
+      MRY: "Mry",
+      WYJ: "Wyj",
+      JZCJ: "Jzcj",
+      JZFQ: "Jzfq",
+    }
     function addVoteRow(votes) {
       const table = document.getElementById("voteTable");
       const row = document.createElement("tr");
@@ -111,63 +141,56 @@
       return id;
     }
 
-    ///////////////////////////////////////
-
-    const joinGame = document.getElementById("joinGame");
-    
-    const numberIWant = document.getElementById("numberIWant");
-    const myName = document.getElementById("myName");
-
-    joinGame.addEventListener("click", () => {
-      if (!numberIWant.value || !myName.value) {
-        alert("Please enter a number and name before joining");
-        return;
-      }
-      if (numberIWant.value <= 0 || numberIWant > 20) {
-        alert("Please enter a 1-20 number");
-        return;
-      }
-      socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, name: myName.value})
-    });
-
-    // Manager control panel START
-    const managerUserNumberInput = document.getElementById("managerUserNumberInput");
-    const managerTextInput = document.getElementById("managerTextInput");
-
-    managerSubmit.addEventListener("click", () => {
-      socket.emit('ToSManagerSubmit', { id: getOrCreateUserId(), input1: managerUserNumberInput.value, input2: managerTextInput.value})
-    });
-    
-    // Manager control panel END
-
-    const userRow = document.getElementById("userRow");
-    for (let i = 1; i <= 9; i++) {
-      const cell = document.createElement("td");
-      cell.textContent = i;
-      userRow.appendChild(cell);
-    }
-
-
-    socket.on('ToCCurrentGame', function (data) {
-      clearLobby()
-      let array = []
-      for(const id in data.lobby){
-        array.push(data.lobby[id])
-      }
-      array.sort((a, b) => a.numberIWant - b.numberIWant)
-      for(const user of array){
-        addRowToLobby(user)
-      }
-
-      updateGameState(data.state)
-    })
-
     function clearLobby(info){
       const tbody = document.getElementById("lobbyBody");
       tbody.innerHTML = ''
     }
 
-    function updateGameState(state){
+    function renderGameState(state){
+      const gameState = document.getElementById("gameState");
+      gameState.innerHTML = 'Game State: ' + state
+    }
+    function renderManagerPanel(){
+      const managerPanel = document.getElementById("managerPanel");
+      managerPanel.style.display = 'block';
+    }
+    function renderOperatorPanel(userProfile){
+      const operatorPanel = document.getElementById("operatorPanel");
+      operatorPanel.style.display = 'block';
+      const operatorPanelInfo = document.getElementById("operatorPanelInfo");
+      if(userProfile.gameRole === GAME_ROLE.CAPTAIN_SELECTING_CARDS || userProfile.gameRole === GAME_ROLE.DF || userProfile.gameRole === GAME_ROLE.DS){
+        operatorPanelInfo.innerHTML = `You are captain and here are 2 cards: ${userProfile.gameRoleDetailsArray[0]} and ${userProfile.gameRoleDetailsArray[1]}. Type it below to keep it. The other one will be discarded.`
+        operatorPanelInput1.style.display = 'block';
+        operatorPanelInput2.style.display = 'block';
+        operatorPanelInput3.style.display = 'none';
+      } else if(userProfile.gameRole === GAME_ROLE.CAPTAIN_SELECTING_PEOPLE){
+        operatorPanelInfo.innerHTML = `You are captain. Choose 2 people. Type user's number below. 1st one is Dafu. 2nd is Duoshou`
+        operatorPanelInput1.style.display = 'block';
+        operatorPanelInput2.style.display = 'block';
+        operatorPanelInput3.style.display = 'none';
+      } else if(userProfile.gameRole === GAME_ROLE.WYJ){
+        operatorPanelInfo.innerHTML = `You are wang yuan jing. Here is the next card to be used in the unused card pool: ${userProfile.gameRoleDetailsArray[0]}. Type keep to keep it. Type discard to discard it.`
+        operatorPanelInput1.style.display = 'block';
+        operatorPanelInput2.style.display = 'none';
+        operatorPanelInput3.style.display = 'none';
+      } else if(userProfile.gameRole === GAME_ROLE.MRY){
+        operatorPanelInfo.innerHTML = `You are mei ren yu. Here are the 3 discarded cards (already shuffled) in this round: ${userProfile.gameRoleDetailsArray[0]}/${userProfile.gameRoleDetailsArray[1]}/${userProfile.gameRoleDetailsArray[2]}.`
+        operatorPanelInput1.style.display = 'none';
+        operatorPanelInput2.style.display = 'none';
+        operatorPanelInput3.style.display = 'none';
+      } else if(userProfile.gameRole === GAME_ROLE.JZCJ){
+        operatorPanelInfo.innerHTML = `You are jiao zhu. You are Chuang jiao-ing. Type user's number and submit. He will become yellow team.`
+        operatorPanelInput1.style.display = 'block';
+        operatorPanelInput2.style.display = 'none';
+        operatorPanelInput3.style.display = 'none';
+      } else if(userProfile.gameRole === GAME_ROLE.JZFQ){
+        operatorPanelInfo.innerHTML = `You are jiao zhu. Now you have 3 guns. If you want to give everyone 1 gun to number2, number4, number9. Type 2, 4, 9. If you want to give all 3 guns to number5. Type 5, 5, 5.`
+        operatorPanelInput1.style.display = 'block';
+        operatorPanelInput2.style.display = 'block';
+        operatorPanelInput3.style.display = 'block';
+      }
+    }
+    function renderGameState(state){
       const gameState = document.getElementById("gameState");
       gameState.innerHTML = 'Game State: ' + state
     }
@@ -198,6 +221,72 @@
       row.appendChild(roleCell);
       tbody.appendChild(row);
     }
+    // Function section END
+
+    const joinGame = document.getElementById("joinGame");
+    const numberIWant = document.getElementById("numberIWant");
+    const myName = document.getElementById("myName");
+
+    joinGame.addEventListener("click", () => {
+      if (!numberIWant.value || !myName.value) {
+        alert("Please enter a number and name before joining");
+        return;
+      }
+      if (numberIWant.value <= 0 || numberIWant > 20) {
+        alert("Please enter a 1-20 number");
+        return;
+      }
+      socket.emit('ToSJoinGame', { id: getOrCreateUserId(), numberIWant: numberIWant.value, name: myName.value})
+    });
+
+    // Manager control panel START
+    const managerUserNumberInput = document.getElementById("managerUserNumberInput");
+    const managerTextInput = document.getElementById("managerTextInput");
+
+    managerSubmit.addEventListener("click", () => {
+      socket.emit('ToSManagerSubmit', { id: getOrCreateUserId(), input1: managerUserNumberInput.value, input2: managerTextInput.value})
+    });
+    // Manager control panel END
+
+    // Operator control panel START
+    const operatorPanelInput1 = document.getElementById("operatorPanelInput1");
+    const operatorPanelInput2 = document.getElementById("operatorPanelInput2");
+    const operatorPanelInput3 = document.getElementById("operatorPanelInput3");
+    const operatorSubmit = document.getElementById("operatorSubmit");
+
+    operatorSubmit.addEventListener("click", () => {
+      socket.emit('ToSOperatorSubmit', { id: getOrCreateUserId(), input1: operatorPanelInput1.value, input2: operatorPanelInput2.value, input3: operatorPanelInput3.value})
+    });
+    // Operator control panel END
+
+    const userRow = document.getElementById("userRow");
+    for (let i = 1; i <= 9; i++) {
+      const cell = document.createElement("td");
+      cell.textContent = i;
+      userRow.appendChild(cell);
+    }
+
+    // Socket listener START
+    socket.on('ToCCurrentGame', function (data) {
+      clearLobby()
+      let array = []
+      for(const id in data.lobby){
+        array.push(data.lobby[id])
+        if(data.lobby[id].isManager){
+          renderManagerPanel()
+        }
+        if(data.lobby[id].gameRole !== GAME_ROLE.DEFAULT){
+          renderOperatorPanel(data.lobby[id])
+        }
+      }
+      array.sort((a, b) => a.numberIWant - b.numberIWant)
+      for(const user of array){
+        addRowToLobby(user)
+      }
+
+      renderGameState(data.state)
+    })
+    // Socket listener END
   </script>
 </body>
 </html>
