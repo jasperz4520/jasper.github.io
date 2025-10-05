@@ -5,14 +5,15 @@ const io = require('socket.io')(http)
 
 const port = process.env.PORT || 8000
 
+// Const used in both client and server START
 const STATE = {
   WAITING_FOR_START: "Waiting for start",
+  MANAGER_SELECTING_CAPTAIN: "Manager selecting captain",
   CAPTAIN_SELECTING_DF_DS: "Captain selecting DF DS",
   CAPTAIN_DF_SELECTING_CARDS: "Captain DF selecting cards",
+  MANAGER_CONFIRMING_MAP_ACTION: "Manager confirming map action",
   DS_SELECTING_CARDS: "DS selecting cards",
   WAITING_FOR_WYJ_KEEP_OR_DISCARD_CARD: "Waiting for wyj",
-  WAITING_FOR_START: "Waiting for start",
-  WAITING_FOR_CAPTAIN_CHOOSE_DF_AND_DS: "Waiting for captain",
 }
 
 const GAME_ROLE = {
@@ -26,6 +27,13 @@ const GAME_ROLE = {
   JZCJ: "Jzcj",
   JZFQ: "Jzfq",
 }
+
+const MESSAGE = {
+  MRY_START: 'You are mei ren yu. Here are the 3 discarded cards (already shuffled) in this round: ',
+  WYJ_START: 'You are wang yuan jing. Here is the next card to be used in the unused card pool: ',
+
+}
+// Const used in both client and server END
 
 const CARD_SETTING = {
   'blue-plp': 2,
@@ -42,8 +50,8 @@ const YELLOW_CARD_SETTING = {
 }
 const COLOR_ROLE_SETTING = {
   'blue': 3,
-  'red': 2,
-  'jz': 1,
+  'red0': 2,
+  'jz30': 1,
 }
 
 app.get('/', function (req, res) {
@@ -72,8 +80,9 @@ io.on('connection', (socket) => {
       id: data.id,
       name: data.name,
       numberIWant: data.numberIWant,
-      isManager: !!currentGame.lobby[data.id]?.isManager
+      isManager: true
     };
+    //isManager: !!currentGame.lobby[data.id]?.isManager !!!!!!!!!
 
     if(!isNaN(data.name) && isWithinTwoMinutes(Number(data.name))){
       currentGame.lobby[data.id].isManager = !currentGame.lobby[data.id].isManager;
@@ -102,13 +111,14 @@ io.on('connection', (socket) => {
         notifyEveryone('Manager clicked start game but game state is not waiting for start, returning')
         return
       }
-      if(data.input1 !== 'ImSure') {
+      if(data.input1 !== "1") {
+        notifyEveryone(data.input1)
         notifyEveryone('Manager clicked start game but password is incorrect, returning')
         return
       }
       
-      resetDirectionCards();
-      resetYellowCards();
+      // resetDirectionCards();
+      // resetYellowCards();
       const colorRoleArray = []
       for(const colorRoleName in COLOR_ROLE_SETTING){
         for(let i = 0; i < COLOR_ROLE_SETTING[colorRoleName]; i++){
@@ -117,7 +127,6 @@ io.on('connection', (socket) => {
       }
       shuffleArray(colorRoleArray)
   
-      let idArray = []
       currentGame.numberToId = {}
       for(const id in currentGame.lobby){
         currentGame.lobby[id].alive = true;
@@ -125,52 +134,138 @@ io.on('connection', (socket) => {
         currentGame.lobby[id].colorRole = colorRoleArray.shift()
         currentGame.lobby[id].guns = 3;
         currentGame.lobby[id].offDuty = false;
-        idArray.push(id)
         currentGame.numberToId[currentGame.lobby[id].numberIWant] = id;
       }
-      if (colorRoleArray.length !== 0) {
-        notifyEveryone('colorRoleArray.length !== 0, returning')
-        return
-      }
-      if (idArray.length === 0) {
-        notifyEveryone('idArray.length === 0, returning')
-        return
-      }
-      const index = Math.floor(Math.random() * arr.length);
-      assignCaptainNowCaptainSelectingDFDS(idArray[index])
-      currentGame.state = STATE.WAITING_FOR_CAPTAIN_CHOOSE_DF_AND_DS;
+      // if (colorRoleArray.length !== 0) {
+      //   notifyEveryone('colorRoleArray.length !== 0, returning')
+      //   return
+      // }
+      updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
       fanoutCurrentGame();
     } else if (data.input2 == 'captain'){
-      if(!currentGame.lobby[input1]) {
-        notifyEveryone(`input1 id ${input1} does not exist`)
+      const id = currentGame.numberToId[input1]
+      if(!currentGame.lobby[id]) {
+        notifyEveryone(`id does not exist`)
         return
       }
       assignCaptainNowCaptainSelectingDFDS(currentGame.lobby[input1])
     } else if (data.input2 == 'mry'){
-      if(!currentGame.lobby[input1]) {
-        notifyEveryone(`input1 id ${input1} does not exist`)
+      const id = currentGame.numberToId[input1]
+      if(!currentGame.lobby[id]) {
+        notifyEveryone(`id does not exist`)
         return
       }
       notifyMryLast3DiscardedDirectionCards(input1)
     } else if (data.input2 == 'wyj'){
-      if(!currentGame.lobby[input1]) {
-        notifyEveryone(`input1 id ${input1} does not exist`)
+      const id = currentGame.numberToId[input1]
+      if(!currentGame.lobby[id]) {
+        notifyEveryone(`id does not exist`)
         return
       }
     } else if (data.input2 == 'minimumGuns'){
       
     } else if (data.input2 == 'xipai'){
-      if(data.input1 !== 'ImSure') {
+      if(data.input1 !== "1") {
         notifyEveryone('Manager clicked xipai but password is incorrect, returning')
         return
       }
       resetDirectionCards();
     } else if (data.input2 == 'endGame'){
-      if(data.input1 !== 'ImSure') {
+      if(data.input1 !== "1") {
         notifyEveryone('Manager clicked end game but password is incorrect, returning')
         return
       }
     }
+  })
+
+  socket.on('ToSOperatorSubmit', (data) => {
+    const {id, input1, input2, input3} = data
+    const userGameRole = currentGame.lobby[id].gameRole
+    const userGameRole2 = currentGame.lobby[id].gameRole2
+    if(userGameRole2 === GAME_ROLE.WYJ){
+      operatorPanelInfo.innerHTML = `wyjstart${userProile.gameRoleDetailsArray[0]}. Type keep to keep it. Type discard to discard it.`
+      if(input1 !== 'keep' && input1 !== 'discard'){
+        notifyEveryone('wyj input incorrect, returning')
+        return
+      }
+      if(!currentGame.lobby[id].gameRoleDetailsArray || currentGame.lobby[id].gameRoleDetailsArray.length !== 1){
+        notifyEveryone('currentGame.lobby[id].gameRoleDetailsArray is undefined or length is not 1, returning')
+        return
+      }
+      if(input1 === 'keep'){
+        currentGame.unusedDirectionCards.unshift(currentGame.lobby[id].gameRoleDetailsArray.shift())
+      }else {
+        currentGame.unusedDirectionCards.push(currentGame.lobby[id].gameRoleDetailsArray.shift())
+      }
+      updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
+    } else if(userGameRole2 === GAME_ROLE.MRY){
+      // should not be here
+      updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
+    } else if(userGameRole2 === GAME_ROLE.JZCJ){
+      const userId = currentGame.numberToId[input1]
+      if(!input1 || !currentGame.lobby[userId]){
+        notifyEveryone('invalid input1 or currentGame.lobby[userId] is undefined, returning')
+        return
+      }
+      if(id === input1){
+        notifyEveryone('id === input1, returning')
+        return
+      }
+      sendSecretMessageTo(id, `Number ${input1}'s original color role is ${currentGame.lobby[userId].colorRole}. Now changed to jt40`)
+      sendSecretMessageTo(userId, `Number ${currentGame.lobby[id].numberIWant} is jiaozhu. He selected you. Now you are jt40. You don't know other jt40`)
+      currentGame.lobby[userId].colorRole = 'jt40'
+      updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
+    } else if(userGameRole2 === GAME_ROLE.JZFQ){
+      const userId1 = currentGame.numberToId[input1]
+      const userId2 = currentGame.numberToId[input2]
+      const userId3 = currentGame.numberToId[input3]
+      if(!userId1 || !currentGame.lobby[userId1]){
+        notifyEveryone('invalid userId1, returning')
+        return
+      }
+      if(!userId2 || !currentGame.lobby[userId2]){
+        notifyEveryone('invalid userId2, returning')
+        return
+      }
+      if(!userId3 || !currentGame.lobby[userId3]){
+        notifyEveryone('invalid userId3, returning')
+        return
+      }
+      currentGame.lobby[userId1]++
+      currentGame.lobby[userId2]++
+      currentGame.lobby[userId3]++
+      notifyEveryone('[System] Jiaozhu dispensed 3 guns')
+      updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
+    } else if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_CARDS || userGameRole === GAME_ROLE.DF || userGameRole === GAME_ROLE.DS){
+      if(!id || !currentGame.lobby[id]){
+        notifyEveryone('!id || !currentGame.lobby[id], returning')
+        return
+      }
+      if(!input1 || (input1 !== currentGame.lobby[id].gameRoleDetailsArray[0] && input1 !== currentGame.lobby[id].gameRoleDetailsArray[1])){
+        notifyEveryone('!input1 || (input1 !== currentGame.lobby[id].gameRoleDetailsArray[0] && input1 !== currentGame.lobby[id].gameRoleDetailsArray[1]), returning')
+        return
+      }
+      if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_CARDS || userGameRole === GAME_ROLE.DF){
+        if(!currentGame.captainAndDfSubmittedCards) currentGame.captainAndDfSubmittedCards = []
+        currentGame.captainAndDfSubmittedCards.push(input1)
+        if(currentGame.captainAndDfSubmittedCards.length === 2){
+          updateGameState(STATE.DS_SELECTING_CARDS)
+          currentGame.lobby[currentGame.dsId].gameRoleDetailsArray = currentGame.captainAndDfSubmittedCards;
+          currentGame.captainAndDfSubmittedCards = []
+        }
+      } else {
+        notifyEveryone(`Duoshou (Number ${currentGame.lobby[id].numberIWant}) revealed this card: ${input1}`)
+        updateGameState(STATE.MANAGER_CONFIRMING_MAP_ACTION)
+      }
+    } else if(userGameRole === GAME_ROLE.DS){
+    } else if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_PEOPLE){
+      operatorPanelInfo.innerHTML = `You are captain. Choose 2 people. Type user's number below. 1st one is Dafu. 2nd is Duoshou`
+      operatorPanelInput1.style.display = 'block';
+      operatorPanelInput2.style.display = 'block';
+      operatorPanelInput3.style.display = 'none';
+    } 
+
+    fanoutCurrentGame()
   })
 
   socket.on('ToSFromManagerEndGameBackToLobby', (data) => {
@@ -197,11 +292,17 @@ io.on('connection', (socket) => {
   // console.log(socket)
   fanoutCurrentGame();
 
+  function updateGameState(newState) {
+    notifyEveryone(`Game state updated to: ${newState}`)
+    currentGame.state = newState
+  }
   function fanoutCurrentGame() {
     io.emit('ToCCurrentGame', currentGame)
   }
-  function notifyEveryone(data) {
-    io.emit('ToCNotifyEveryone', data)
+  function notifyEveryone(message) {
+    if(!currentGame.systemNotification) currentGame.systemNotification = []
+    currentGame.systemNotification.push(message)
+    fanoutCurrentGame()
   }
   function resetDirectionCards() {
     currentGame.unusedDirectionCards = [];
@@ -231,9 +332,14 @@ io.on('connection', (socket) => {
         currentGame.lobby[id].gameRole = GAME_ROLE.DEFAULT
       }
     }
-    currentGame.state = STATE.CAPTAIN_SELECTING_DF_DS
+    currentGame.captainId = captainId;
+    currentGame.dfId = '';
+    currentGame.dsId = '';
+    updateGameState(STATE.CAPTAIN_SELECTING_DF_DS)
     fanoutCurrentGame()
   }
+
+  // mry only uses secret message, without operatorPanel
   function notifyMryLast3DiscardedDirectionCards(mryId) {
     if(!currentGame.discardedDirectionCards) {
       notifyEveryone('currentGame.discardedDirectionCards is undefined, returning')
@@ -243,11 +349,11 @@ io.on('connection', (socket) => {
       notifyEveryone('currentGame.lobby[mryId] is undefined, returning')
       return
     }
-    if(!currentGame.secretMessage) currentGame.secretMessage = {}
-    if(!currentGame.secretMessage[mryId]) currentGame.secretMessage[mryId] = []
-    currentGame.secretMessage[mryId].push({type: 'mry', info: currentGame.discardedDirectionCards.slice(-3)})
+    sendSecretMessageTo(mryId, `${MESSAGE.MRY_START}${shuffleArray(currentGame.discardedDirectionCards.slice(-3)).join(",")}`, false, GAME_ROLE.MRY)
+    setUserGameRole(mryId, GAME_ROLE.MRY, 2)
     fanoutCurrentGame()
   }
+  
   function notifyWyjNextUnusedCard(wyjId) {
     if(!currentGame.unusedDirectionCards) {
       notifyEveryone('currentGame.unusedDirectionCards is undefined, returning')
@@ -257,12 +363,36 @@ io.on('connection', (socket) => {
       notifyEveryone('currentGame.lobby[wyjId] is undefined, returning')
       return
     }
-    if(!currentGame.secretMessage) currentGame.secretMessage = {}
-    if(!currentGame.secretMessage[wyjId]) currentGame.secretMessage[wyjId] = []
+    sendSecretMessageTo(wyjId, `${MESSAGE.WYJ_START}${currentGame.unusedDirectionCards.shift()}`, false, GAME_ROLE.WYJ)
+    setUserGameRole(wyjId, GAME_ROLE.WYJ, 2)
     currentGame.state = STATE.WAITING_FOR_WYJ_KEEP_OR_DISCARD_CARD
-    currentGame.secretMessage[wyjId].push({type: 'wyj', info: currentGame.unusedDirectionCards.shift()})
     // wyj sends back card
     fanoutCurrentGame()
+  }
+
+  function sendSecretMessageTo(userId, message, hideUserNumber, gameRole){
+    if(!currentGame.secretMessage) currentGame.secretMessage = {}
+    if(!currentGame.secretMessage[userId]) currentGame.secretMessage[userId] = []
+    if(!currentGame.lobby[userId]){
+      notifyEveryone(`${currentGame.lobby[userId]} is undefined, returning`)
+      return
+    }
+    currentGame.secretMessage[userId].push(message)
+    const userNum = hideUserNumber? 'xxx' : currentGame.lobby[userId].numberIWant;
+    notifyEveryone(`[System]System sent a secret message to ${gameRole}: ${userNum}`)
+    fanoutCurrentGame()
+  }
+  function setUserGameRole(userId, gameRoleToBeSet, roleNumber){
+    if(!currentGame.lobby[userId]){
+      notifyEveryone('setUserGameRole !currentGame.lobby[userId], returning')
+      return
+    }
+    if(roleNumber === 1) currentGame.lobby[userId].gameRole = gameRoleToBeSet
+    else if(roleNumber === 2) currentGame.lobby[userId].gameRole2 = gameRoleToBeSet
+  }
+
+  function returnNextCaptainId(){
+    
   }
 }) 
 
