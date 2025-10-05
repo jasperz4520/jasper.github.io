@@ -9,10 +9,13 @@ const port = process.env.PORT || 8000
 const STATE = {
   WAITING_FOR_START: "Waiting for start",
   MANAGER_SELECTING_CAPTAIN: "Manager selecting captain",
-  CAPTAIN_SELECTING_DF_DS: "Captain selecting DF DS",
+  // CAPTAIN_SELECTING_DF_DS: "Captain selecting DF DS",
+  MANAGER_SELECTING_DF_DS: "Manager selecting DF DS",
+  WAITING_FOR_VOTE: "Waiting for vote",
   CAPTAIN_DF_SELECTING_CARDS: "Captain DF selecting cards",
-  MANAGER_CONFIRMING_MAP_ACTION: "Manager confirming map action",
   DS_SELECTING_CARDS: "DS selecting cards",
+  MANAGER_CONFIRMING_MAP_ACTION: "Manager confirming map action",
+  MANAGER_CONFIRMING_CARD_ACTION: "Manager confirming card action",
   WAITING_FOR_WYJ_KEEP_OR_DISCARD_CARD: "Waiting for wyj",
 }
 
@@ -26,6 +29,7 @@ const GAME_ROLE = {
   WYJ: "Wyj",
   JZCJ: "Jzcj",
   JZFQ: "Jzfq",
+  VOTER: "Voter",
 }
 
 const MESSAGE = {
@@ -80,7 +84,9 @@ io.on('connection', (socket) => {
       id: data.id,
       name: data.name,
       numberIWant: data.numberIWant,
-      isManager: true
+      isManager: true,
+      gameRole : GAME_ROLE.DEFAULT,
+      gameRole2 : GAME_ROLE.DEFAULT,
     };
     //isManager: !!currentGame.lobby[data.id]?.isManager !!!!!!!!!
 
@@ -128,27 +134,30 @@ io.on('connection', (socket) => {
       shuffleArray(colorRoleArray)
   
       currentGame.numberToId = {}
+      let howManyUsers = 0;
       for(const id in currentGame.lobby){
+        howManyUsers++
         currentGame.lobby[id].alive = true;
         currentGame.lobby[id].gameRole = GAME_ROLE.DEFAULT;
+        currentGame.lobby[id].gameRole2 = GAME_ROLE.DEFAULT;
         currentGame.lobby[id].colorRole = colorRoleArray.shift()
         currentGame.lobby[id].guns = 3;
         currentGame.lobby[id].offDuty = false;
         currentGame.numberToId[currentGame.lobby[id].numberIWant] = id;
       }
+      currentGame.howManyUsers = howManyUsers;
       // if (colorRoleArray.length !== 0) {
       //   notifyEveryone('colorRoleArray.length !== 0, returning')
       //   return
       // }
       updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
-      fanoutCurrentGame();
     } else if (data.input2 == 'captain'){
       const id = currentGame.numberToId[input1]
       if(!currentGame.lobby[id]) {
         notifyEveryone(`id does not exist`)
         return
       }
-      assignCaptainNowCaptainSelectingDFDS(currentGame.lobby[input1])
+      assignCaptainNowCaptainSelectingDFDS(id)
     } else if (data.input2 == 'mry'){
       const id = currentGame.numberToId[input1]
       if(!currentGame.lobby[id]) {
@@ -175,14 +184,40 @@ io.on('connection', (socket) => {
         notifyEveryone('Manager clicked end game but password is incorrect, returning')
         return
       }
+    } else if (data.input2 == 'df-ds'){
+      if(!data.input1) {
+        notifyEveryone('!data.input1, returning')
+        return
+      }
+      const dfdsArray = input1.split("-");
+      const df = dfdsArray[0]
+      const ds = dfdsArray[1]
+      if(!df || !ds){
+        notifyEveryone('!dfdsArray[0] || !dfdsArray[1], returning')
+        return
+      }
+      const dfid = currentGame.numberToId[df]
+      const dsid = currentGame.numberToId[ds]
+      if(!currentGame.lobby[dfid] || !currentGame.lobby[dsid]) {
+        notifyEveryone(`!currentGame.lobby[dfid] || !currentGame.lobby[dsid], returning`)
+        return
+      }
+      setUserGameRole(dfid, GAME_ROLE.DF, 1)
+      setUserGameRole(dsid, GAME_ROLE.DS, 1)
+      currentGame.dfId = dfid;
+      currentGame.dsId = dsid;
+      updateGameState(STATE.WAITING_FOR_VOTE)
+      currentGame.voteRecord = {}
+      currentGame.votedNumber = 0;
     }
+    fanoutCurrentGame()
   })
 
   socket.on('ToSOperatorSubmit', (data) => {
-    const {id, input1, input2, input3} = data
+    const {operatorPanelType, id, input1, input2, input3} = data
     const userGameRole = currentGame.lobby[id].gameRole
     const userGameRole2 = currentGame.lobby[id].gameRole2
-    if(userGameRole2 === GAME_ROLE.WYJ){
+    if(operatorPanelType === GAME_ROLE.WYJ){
       operatorPanelInfo.innerHTML = `wyjstart${userProile.gameRoleDetailsArray[0]}. Type keep to keep it. Type discard to discard it.`
       if(input1 !== 'keep' && input1 !== 'discard'){
         notifyEveryone('wyj input incorrect, returning')
@@ -198,10 +233,10 @@ io.on('connection', (socket) => {
         currentGame.unusedDirectionCards.push(currentGame.lobby[id].gameRoleDetailsArray.shift())
       }
       updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
-    } else if(userGameRole2 === GAME_ROLE.MRY){
+    } else if(operatorPanelType === GAME_ROLE.MRY){
       // should not be here
       updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
-    } else if(userGameRole2 === GAME_ROLE.JZCJ){
+    } else if(operatorPanelType === GAME_ROLE.JZCJ){
       const userId = currentGame.numberToId[input1]
       if(!input1 || !currentGame.lobby[userId]){
         notifyEveryone('invalid input1 or currentGame.lobby[userId] is undefined, returning')
@@ -215,7 +250,7 @@ io.on('connection', (socket) => {
       sendSecretMessageTo(userId, `Number ${currentGame.lobby[id].numberIWant} is jiaozhu. He selected you. Now you are jt40. You don't know other jt40`)
       currentGame.lobby[userId].colorRole = 'jt40'
       updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
-    } else if(userGameRole2 === GAME_ROLE.JZFQ){
+    } else if(operatorPanelType === GAME_ROLE.JZFQ){
       const userId1 = currentGame.numberToId[input1]
       const userId2 = currentGame.numberToId[input2]
       const userId3 = currentGame.numberToId[input3]
@@ -236,7 +271,7 @@ io.on('connection', (socket) => {
       currentGame.lobby[userId3]++
       notifyEveryone('[System] Jiaozhu dispensed 3 guns')
       updateGameState(STATE.MANAGER_SELECTING_CAPTAIN)
-    } else if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_CARDS || userGameRole === GAME_ROLE.DF || userGameRole === GAME_ROLE.DS){
+    } else if(operatorPanelType === GAME_ROLE.CAPTAIN_SELECTING_CARDS || operatorPanelType === GAME_ROLE.DF || operatorPanelType === GAME_ROLE.DS){
       if(!id || !currentGame.lobby[id]){
         notifyEveryone('!id || !currentGame.lobby[id], returning')
         return
@@ -245,7 +280,7 @@ io.on('connection', (socket) => {
         notifyEveryone('!input1 || (input1 !== currentGame.lobby[id].gameRoleDetailsArray[0] && input1 !== currentGame.lobby[id].gameRoleDetailsArray[1]), returning')
         return
       }
-      if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_CARDS || userGameRole === GAME_ROLE.DF){
+      if(operatorPanelType === GAME_ROLE.CAPTAIN_SELECTING_CARDS || operatorPanelType === GAME_ROLE.DF){
         if(!currentGame.captainAndDfSubmittedCards) currentGame.captainAndDfSubmittedCards = []
         currentGame.captainAndDfSubmittedCards.push(input1)
         if(currentGame.captainAndDfSubmittedCards.length === 2){
@@ -257,14 +292,22 @@ io.on('connection', (socket) => {
         notifyEveryone(`Duoshou (Number ${currentGame.lobby[id].numberIWant}) revealed this card: ${input1}`)
         updateGameState(STATE.MANAGER_CONFIRMING_MAP_ACTION)
       }
-    } else if(userGameRole === GAME_ROLE.DS){
-    } else if(userGameRole === GAME_ROLE.CAPTAIN_SELECTING_PEOPLE){
-      operatorPanelInfo.innerHTML = `You are captain. Choose 2 people. Type user's number below. 1st one is Dafu. 2nd is Duoshou`
-      operatorPanelInput1.style.display = 'block';
-      operatorPanelInput2.style.display = 'block';
-      operatorPanelInput3.style.display = 'none';
+    } else if(operatorPanelType === GAME_ROLE.DS){
+    } else if(operatorPanelType === GAME_ROLE.VOTER){
+      if(input1 > currentGame.lobby[id].guns) notifyEveryone(`Number used ${input1} guns, which is more than what he has`)
+      if(!currentGame.voteRecord) currentGame.voteRecord = {}
+      currentGame.voteRecord[id] = input1
+      currentGame.votedNumber++
+      if(currentGame.howManyUsers === currentGame.votedNumber){
+        
+      }
+    } else if(operatorPanelType === GAME_ROLE.CAPTAIN_SELECTING_PEOPLE){
+      // operatorPanelInfo.innerHTML = `You are captain. Choose 2 people. Type user's number below. 1st one is Dafu. 2nd is Duoshou`
+      // operatorPanelInput1.style.display = 'block';
+      // operatorPanelInput2.style.display = 'block';
+      // operatorPanelInput3.style.display = 'none';
     } 
-
+    // const {operatorPanelType, id, input1, input2, input3} = data
     fanoutCurrentGame()
   })
 
@@ -335,7 +378,7 @@ io.on('connection', (socket) => {
     currentGame.captainId = captainId;
     currentGame.dfId = '';
     currentGame.dsId = '';
-    updateGameState(STATE.CAPTAIN_SELECTING_DF_DS)
+    updateGameState(STATE.MANAGER_SELECTING_DF_DS)
     fanoutCurrentGame()
   }
 
